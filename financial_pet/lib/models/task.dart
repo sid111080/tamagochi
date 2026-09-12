@@ -109,7 +109,7 @@ class Task {
 
 /// Пул предзаготовленных заданий (без бэкенда).
 class TaskPool {
-  static const List<Task> all = [
+  static final List<Task> all = [
     // --- Ежедневные ---
     Task(
       id: 'd_count',

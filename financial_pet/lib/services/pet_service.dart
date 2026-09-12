@@ -40,7 +40,7 @@ class PetService extends ChangeNotifier {
   bool get justLeveledUp => _justLeveledUp;
   void consumeLevelUp() => _justLeveledUp = false;
 
-  Pet _load() {
+  Pet? _load() {
     final raw = _prefs.getString(_kPet);
     if (raw == null) return null;
     try {

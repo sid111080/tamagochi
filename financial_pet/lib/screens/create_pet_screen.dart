@@ -99,7 +99,7 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: PetSpecies.all.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(width: 12),
                         itemBuilder: (context, i) {
                           final s = PetSpecies.all[i];

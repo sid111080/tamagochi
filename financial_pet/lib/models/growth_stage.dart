@@ -20,7 +20,7 @@ extension GrowthStageX on GrowthStage {
       };
 
   /// Индекс для выбора эмодзи вида по стадии.
-  int get index => ordinal;
+  int get index => GrowthStage.values.indexOf(this);
 
   static GrowthStage fromLevel(int level) => switch (level) {
         >= 8 => GrowthStage.adult,

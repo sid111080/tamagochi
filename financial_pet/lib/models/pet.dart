@@ -28,11 +28,12 @@ class Pet {
     this.fun = 80,
     this.cleanliness = 80,
     this.totalXp = 0,
+    List<int>? xpHistory,
     DateTime? createdAt,
     DateTime? lastDecayAt,
   })  : createdAt = createdAt ?? DateTime.now(),
         lastDecayAt = lastDecayAt ?? DateTime.now(),
-        xpHistory = [0];
+        xpHistory = xpHistory ?? [0];
 
   final String id;
   final String name;
@@ -50,7 +51,7 @@ class Pet {
   DateTime lastDecayAt;
 
   /// Снимки накопленного опыта (для графика роста).
-  List<int> xpHistory;
+  final List<int> xpHistory;
 
   static const int xpPerLevel = 60;
   static const double _decayPerMinute = 0.6;

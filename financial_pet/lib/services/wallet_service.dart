@@ -11,21 +11,24 @@ const String _kWallet = 'wallet_v1';
 /// Управляет кошельком: балансом и историей операций.
 /// Все данные хранятся локально (SharedPreferences).
 class WalletService extends ChangeNotifier {
-  WalletService(this._prefs) : _wallet = _load();
+  WalletService._(this._prefs, this._wallet);
+
+  factory WalletService(SharedPreferences prefs) =>
+      WalletService._(prefs, _load(prefs));
 
   final SharedPreferences _prefs;
   final Wallet _wallet;
 
   static const int startingBalance = 50;
 
-  Wallet _load() {
-    final raw = _prefs.getString(_kWallet);
-    if (raw == null) return Wallet(startingBalance: startingBalance);
+  static Wallet _load(SharedPreferences prefs) {
+    final raw = prefs.getString(_kWallet);
+    if (raw == null) return Wallet(balance: startingBalance);
     try {
       return Wallet.fromJson(
           jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
-      return Wallet(startingBalance: startingBalance);
+      return Wallet(balance: startingBalance);
     }
   }
 
