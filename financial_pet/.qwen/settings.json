@@ -4,7 +4,9 @@
       "Bash(flutter *)",
       "Bash(dart *)",
       "Bash(mkdir *)",
-      "Bash(printf *)"
+      "Bash(printf *)",
+      "Bash(git *)",
+      "Bash(grep *)"
     ]
   },
   "$version": 4
