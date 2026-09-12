@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(new-app)",
+      "Bash(find *)",
+      "Bash(flutter *)",
+      "Bash(cd *)",
+      "Bash(tail *)"
+    ]
+  },
+  "$version": 4
+}
