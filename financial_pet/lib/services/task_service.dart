@@ -53,6 +53,8 @@ class TaskService extends ChangeNotifier {
   final Map<String, String> _completedAt = {};
   // Ежедневный стрик: сколько дней подряд выполняли ежедневные задания.
   int _streak = 0;
+  // Лучший стрик за всё время: по нему начисляются бейджи.
+  int _maxStreak = 0;
   String _lastStreakDay = '';
 
   late List<Task> _tasks;
@@ -78,6 +80,9 @@ class TaskService extends ChangeNotifier {
 
   int get streak => _streak;
 
+  /// Лучший стрик за всё время (бейджи считаются по нему).
+  int get maxStreak => _maxStreak;
+
   List<Task> get dailyTasks =>
       _tasks.where((t) => t.frequency == TaskFrequency.daily).toList();
 
@@ -95,7 +100,9 @@ class TaskService extends ChangeNotifier {
     if (stored != null) {
       _ids = _currentIds(stored);
       _streak = (stored['streak'] as num?)?.toInt() ?? 0;
+      _maxStreak = (stored['maxStreak'] as num?)?.toInt() ?? _streak;
       _lastStreakDay = stored['lastStreakDay'] as String? ?? '';
+      if (_streak > _maxStreak) _maxStreak = _streak;
       _completedAt
         ..clear()
         ..addAll(_stringMap(stored['completed']));
@@ -181,6 +188,7 @@ class TaskService extends ChangeNotifier {
     if (_lastStreakDay == today) return;
     final yesterday = _dayKey(now.subtract(const Duration(days: 1)));
     _streak = _lastStreakDay == yesterday ? _streak + 1 : 1;
+    if (_streak > _maxStreak) _maxStreak = _streak;
     _lastStreakDay = today;
   }
 
@@ -205,6 +213,7 @@ class TaskService extends ChangeNotifier {
           'week': '',
           'ids': <String>[],
           'streak': 0,
+          'maxStreak': 0,
           'lastStreakDay': '',
           'completed': <String, String>{
             for (final m in list)
@@ -227,6 +236,7 @@ class TaskService extends ChangeNotifier {
       'week': _week,
       'ids': _ids,
       'streak': _streak,
+      'maxStreak': _maxStreak,
       'lastStreakDay': _lastStreakDay,
       'completed': {
         for (final e in _completedAt.entries)

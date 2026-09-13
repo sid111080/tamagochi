@@ -115,8 +115,8 @@ class PetService extends ChangeNotifier {
     return true;
   }
 
-  /// Начислить опыт за выполнение задания.
-  void addXpForTask(int amount) {
+  /// Начислить опыт (за задание, цель копилки и т.д.).
+  void addXp(int amount) {
     final p = _pet;
     if (p == null || amount <= 0) return;
     final beforeLevel = p.level;
@@ -124,6 +124,9 @@ class PetService extends ChangeNotifier {
     _justLeveledUp = p.level > beforeLevel;
     _save();
   }
+
+  /// Начислить опыт за выполнение задания.
+  void addXpForTask(int amount) => addXp(amount);
 
   void _save() {
     final p = _pet;

@@ -52,7 +52,18 @@
       "Bash(draw.line)",
       "Bash(img.save)",
       "Bash(print)",
-      "Bash(eof)"
+      "Bash(eof)",
+      "Bash(adb *)",
+      "Bash(ls *)",
+      "Bash(~/library/android/sdk/platform-tools/adb *)",
+      "Bash(~/library/android/sdk/emulator/emulator *)",
+      "Bash(do *)",
+      "Bash(then *)",
+      "Bash(break)",
+      "Bash(fi)",
+      "Bash(sleep *)",
+      "Bash(done)",
+      "Read(//tmp/**)"
     ]
   },
   "$version": 4

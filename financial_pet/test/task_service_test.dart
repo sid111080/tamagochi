@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:financial_pet/models/streak_badge.dart';
 import 'package:financial_pet/models/task.dart';
 import 'package:financial_pet/services/pet_service.dart';
 import 'package:financial_pet/services/task_service.dart';
@@ -106,6 +107,31 @@ void main() {
     // Тот же день — задание выполнено и недоступно.
     expect(t.isAvailableNow(now), isFalse);
     expect(tasks.completeTask(t.id), isFalse);
+  });
+
+  test('максимальный стрик не сбрасывается: бейджи считаются по лучшему', () {
+    final daily = TaskFrequency.daily;
+
+    tasks.completeTask(
+        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+    now = now.add(const Duration(days: 1));
+    tasks.completeTask(
+        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+    expect(tasks.maxStreak, 2);
+
+    // Пропустили несколько дней: стрик сброшен, а рекорд сохранился.
+    now = now.add(const Duration(days: 3));
+    tasks.completeTask(
+        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+    expect(tasks.streak, 1);
+    expect(tasks.maxStreak, 2);
+    expect(StreakBadge.all.first.isEarned(tasks.maxStreak), isFalse);
+  });
+
+  test('бейдж начисляется при достижении порога', () {
+    final bronze = StreakBadge.all.first;
+    expect(bronze.isEarned(2), isFalse);
+    expect(bronze.isEarned(3), isTrue);
   });
 
   test('история сохраняется: новый сервис видит выполнения и стрик', () {

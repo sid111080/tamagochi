@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/splash_screen.dart';
 import 'services/pet_service.dart';
+import 'services/piggy_bank_service.dart';
 import 'services/task_service.dart';
 import 'services/wallet_service.dart';
 import 'theme/app_theme.dart';
@@ -31,6 +32,13 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (ctx) => TaskService(
+            prefs,
+            ctx.read<WalletService>(),
+            ctx.read<PetService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => PiggyBankService(
             prefs,
             ctx.read<WalletService>(),
             ctx.read<PetService>(),
