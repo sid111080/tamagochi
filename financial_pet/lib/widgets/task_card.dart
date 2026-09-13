@@ -106,40 +106,50 @@ class TaskCard extends StatelessWidget {
                         const Color(0xFFB8860B)),
                     const SizedBox(width: 8),
                     _reward('⭐ +${task.xpReward} XP', AppColors.grape),
-                    const Spacer(),
-                    if (isDone)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.leaf,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          '✓ Выполнено',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
-                        ),
-                      )
-                    else
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: available ? onComplete : null,
-                        child: const Text('Выполнить'),
-                      ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                if (isDone)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.leaf,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        '✓ Выполнено',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: available ? onComplete : null,
+                      child: const Text(
+                        'Выполнить',
+                        style:
+                            TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
