@@ -26,14 +26,14 @@ class App extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => WalletService(prefs)),
         ChangeNotifierProvider(
-          create: (_) =>
-              PetService(prefs, context.read<WalletService>()),
+          create: (ctx) =>
+              PetService(prefs, ctx.read<WalletService>()),
         ),
         ChangeNotifierProvider(
-          create: (_) => TaskService(
+          create: (ctx) => TaskService(
             prefs,
-            context.read<WalletService>(),
-            context.read<PetService>(),
+            ctx.read<WalletService>(),
+            ctx.read<PetService>(),
           ),
         ),
       ],

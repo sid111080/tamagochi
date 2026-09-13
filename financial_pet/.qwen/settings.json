@@ -15,7 +15,10 @@
       "Bash(git rev-parse *)",
       "Bash(git ls-files *)",
       "Bash(head *)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Read(//Users/alexander/Desktop/**)"
     ]
   },
   "$version": 4
