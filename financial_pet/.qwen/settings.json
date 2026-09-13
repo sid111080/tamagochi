@@ -8,7 +8,14 @@
       "Bash(git *)",
       "Bash(grep *)",
       "Bash(cd *)",
-      "Bash(tail *)"
+      "Bash(tail *)",
+      "Bash(git status)",
+      "Bash(echo *)",
+      "Bash(git diff *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(head *)",
+      "Bash(git status *)"
     ]
   },
   "$version": 4
