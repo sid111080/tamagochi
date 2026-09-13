@@ -30,6 +30,6 @@ samples, guidance on mobile development, and a full API reference.
 получать ежедневные или еженедельные (в зависимости от сложности) задания на тему финансов; 
 видеть прогресс и рост питомца, который напрямую зависит от разумного управления ресурсами.
 
-![Preview](pet1.PNG)
-![Preview](pet2.PNG)
+![Preview](pet1.png)
+![Preview](pet2.png)
 
