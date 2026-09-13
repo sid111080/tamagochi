@@ -36,7 +36,7 @@ class CoinTransaction {
 
 /// Кошелёк виртуальной валюты приложения.
 class Wallet {
-  Wallet({int balance = 50}) : balance = balance;
+  Wallet({this.balance = 50});
 
   int balance;
   List<CoinTransaction> transactions = [];

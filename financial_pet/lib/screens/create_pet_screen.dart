@@ -39,7 +39,7 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
     final service = context.read<PetService>();
     service.createPet(_nameController.text, _selected.id);
     Navigator.of(context).pushReplacement(
-      const MaterialPageRoute(builder: (_) => HomeScreen()),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 

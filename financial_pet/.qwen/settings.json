@@ -6,7 +6,9 @@
       "Bash(mkdir *)",
       "Bash(printf *)",
       "Bash(git *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(cd *)",
+      "Bash(tail *)"
     ]
   },
   "$version": 4

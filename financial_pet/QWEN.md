@@ -13,7 +13,7 @@ You are a senior Flutter/Dart developer and a UX specialist for children's educa
 
 Мобильное приложение по повышению финансовой грамотности детей и молодёжи Москвы.
 
-- **Платформа:** RuStore, Android, iOS
+- **Платформа:** RuStore, Android
 - **Аудитория:** дети и молодёжь 7–14 лет, Москва
 - **Язык интерфейса:** русский
 - **Архитектура:** Feature-First, чистые слои (domain / data / presentation)
