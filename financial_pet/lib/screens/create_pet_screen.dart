@@ -95,7 +95,7 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
                   children: [
                     // Выбор вида.
                     SizedBox(
-                      height: 96,
+                      height: 120,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: PetSpecies.all.length,
@@ -136,6 +136,7 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
                                 ],
                               ),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment:
                                     MainAxisAlignment.center,
                                 children: [
