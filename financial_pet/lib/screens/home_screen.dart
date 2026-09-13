@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/growth_stage.dart';
 import '../models/pet.dart';
 import '../models/pet_species.dart';
+import '../models/task.dart';
 import '../services/pet_service.dart';
 import '../services/task_service.dart';
 import '../services/wallet_service.dart';
@@ -274,24 +275,43 @@ class _TasksTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final taskService = context.watch<TaskService>();
     final petService = context.read<PetService>();
-    final now = DateTime.now();
 
     final available = taskService.availableTasks;
-    final completed = taskService
-        .completedTasks
-        .where((t) => !t.isAvailableNow(now))
-        .toList();
+    final completed = taskService.completedTasks;
 
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'Доступно: ${taskService.availableCount}',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.inkSoft,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Доступно: ${taskService.availableCount}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.inkSoft,
+                ),
+              ),
+            ),
+            if (taskService.streak > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '🔥 ${taskService.streak}',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1F8A82),
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 14),
         if (available.isEmpty)
@@ -300,7 +320,7 @@ class _TasksTab extends StatelessWidget {
           ...available.map(
             (t) => TaskCard(
               task: t,
-              onComplete: () => _complete(context, t.id, petService),
+              onComplete: () => _confirmComplete(context, t, petService),
             ),
           ),
         if (completed.isNotEmpty) ...[
@@ -322,23 +342,118 @@ class _TasksTab extends StatelessWidget {
     );
   }
 
-  void _complete(
-      BuildContext context, String id, PetService petService) {
-    final ok = context.read<TaskService>().completeTask(id);
-    if (ok && petService.justLeveledUp) {
-      petService.consumeLevelUp();
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('🎉 Уровень повышен!'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.ink,
-            duration: const Duration(seconds: 2),
+  /// Подтверждение: награда даётся, только если задание действительно сделано.
+  void _confirmComplete(
+      BuildContext context, Task task, PetService petService) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20))),
+        contentPadding: const EdgeInsets.all(20),
+        title: Row(
+          children: [
+            Text(task.emoji, style: const TextStyle(fontSize: 28)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Ты выполнил(а) задание?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task.title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              task.description,
+              style: const TextStyle(
+                fontSize: 13.5,
+                height: 1.4,
+                color: AppColors.inkSoft,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Расскажи маме или папе, что ты сделал(а). Награда: '
+              '🪙 +${task.coinReward}, ⭐ +${task.xpReward} XP',
+              style: const TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                color: AppColors.inkSoft,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              'Пока нет',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkSoft,
+              ),
+            ),
           ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Да, выполнил(а)!',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed != true || !context.mounted) return;
+      final ok = context.read<TaskService>().completeTask(task.id);
+      if (!ok) return;
+      final messenger = ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar();
+      if (petService.justLeveledUp) {
+        petService.consumeLevelUp();
+        messenger.showSnackBar(_snack('🎉 Уровень повышен!'));
+      } else {
+        messenger.showSnackBar(
+          _snack('🎉 +${task.coinReward} 🪙, +${task.xpReward} XP'),
         );
-    }
+      }
+    });
   }
+
+  SnackBar _snack(String message) => SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.ink,
+        duration: const Duration(seconds: 2),
+      );
 }
 
 /// Пустое состояние, если питомец не создан.

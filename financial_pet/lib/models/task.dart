@@ -13,6 +13,23 @@ extension TaskFrequencyX on TaskFrequency {
       };
 }
 
+/// Сложность задания: влияет на размер награды.
+enum TaskDifficulty { easy, medium, hard }
+
+extension TaskDifficultyX on TaskDifficulty {
+  String get label => switch (this) {
+        TaskDifficulty.easy => 'Легко',
+        TaskDifficulty.medium => 'Средне',
+        TaskDifficulty.hard => 'Сложно',
+      };
+
+  String get badge => switch (this) {
+        TaskDifficulty.easy => '🌱',
+        TaskDifficulty.medium => '🌿',
+        TaskDifficulty.hard => '🌳',
+      };
+}
+
 /// Задание по финансовой грамотности. Выполнение приносит
 /// монетки и опыт (рост питомца).
 class Task {
@@ -24,6 +41,7 @@ class Task {
     required this.coinReward,
     required this.xpReward,
     required this.frequency,
+    this.difficulty = TaskDifficulty.easy,
     this.completed = false,
     this.completedAt,
   });
@@ -35,6 +53,7 @@ class Task {
   final int coinReward;
   final int xpReward;
   final TaskFrequency frequency;
+  final TaskDifficulty difficulty;
 
   bool completed;
   DateTime? completedAt;
@@ -48,6 +67,7 @@ class Task {
         coinReward: coinReward,
         xpReward: xpReward,
         frequency: frequency,
+        difficulty: difficulty,
         completed: false,
         completedAt: null,
       );
@@ -87,6 +107,7 @@ class Task {
         'coinReward': coinReward,
         'xpReward': xpReward,
         'frequency': frequency.name,
+        'difficulty': difficulty.name,
         'completed': completed,
         'completedAt': completedAt?.toIso8601String(),
       };
@@ -100,6 +121,10 @@ class Task {
         xpReward: (json['xpReward'] as num).toInt(),
         frequency:
             TaskFrequency.values.firstWhere((f) => f.name == json['frequency']),
+        difficulty: TaskDifficulty.values
+            .where((d) => d.name == json['difficulty'])
+            .firstOrNull ??
+            TaskDifficulty.easy,
         completed: json['completed'] as bool? ?? false,
         completedAt: json['completedAt'] == null
             ? null
@@ -108,6 +133,7 @@ class Task {
 }
 
 /// Пул предзаготовленных заданий (без бэкенда).
+/// На день сервис выбирает часть ежедневных, на неделю — часть еженедельных.
 class TaskPool {
   static final List<Task> all = [
     // --- Ежедневные ---
@@ -120,6 +146,7 @@ class TaskPool {
       coinReward: 15,
       xpReward: 25,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.easy,
     ),
     Task(
       id: 'd_piggy',
@@ -130,6 +157,7 @@ class TaskPool {
       coinReward: 15,
       xpReward: 25,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.easy,
     ),
     Task(
       id: 'd_want_need',
@@ -140,6 +168,7 @@ class TaskPool {
       coinReward: 15,
       xpReward: 25,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.easy,
     ),
     Task(
       id: 'd_compare',
@@ -147,9 +176,10 @@ class TaskPool {
       description:
           'Найди дома две вещи и назови, какая из них дороже.',
       emoji: '🏷️',
-      coinReward: 15,
-      xpReward: 25,
+      coinReward: 20,
+      xpReward: 30,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.medium,
     ),
     Task(
       id: 'd_plan',
@@ -160,6 +190,7 @@ class TaskPool {
       coinReward: 15,
       xpReward: 25,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.easy,
     ),
     Task(
       id: 'd_spend',
@@ -167,18 +198,20 @@ class TaskPool {
       description:
           'Придумай, на что потратить 10 монеток, чтобы их хватило на два дня.',
       emoji: '🛒',
-      coinReward: 15,
-      xpReward: 25,
+      coinReward: 20,
+      xpReward: 30,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.medium,
     ),
     Task(
       id: 'd_save',
       title: 'Экономка',
       description: 'Назови один способ сэкономить монетки на этой неделе.',
       emoji: '💡',
-      coinReward: 15,
-      xpReward: 25,
+      coinReward: 20,
+      xpReward: 30,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.medium,
     ),
     Task(
       id: 'd_gift',
@@ -186,9 +219,54 @@ class TaskPool {
       description:
           'Подумай, кому и какой подарок ты можешь сделать за свои монетки.',
       emoji: '🎁',
+      coinReward: 25,
+      xpReward: 35,
+      frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.hard,
+    ),
+    Task(
+      id: 'd_price_hunt',
+      title: 'Охотник за ценами',
+      description:
+          'Вместе с родителем найди в магазине 3 товара дешевле 100 рублей. Что это было?',
+      emoji: '🕵️',
+      coinReward: 20,
+      xpReward: 30,
+      frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.medium,
+    ),
+    Task(
+      id: 'd_wait',
+      title: 'Подумай день',
+      description:
+          'Хочешь что-то купить? Подожди один день. Если захочется так же сильно — можно, если нет — ты сэкономил(а)!',
+      emoji: '⏳',
       coinReward: 15,
       xpReward: 25,
       frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.easy,
+    ),
+    Task(
+      id: 'd_bill',
+      title: 'Домашний счёт',
+      description:
+          'Вместе с родителем посмотри один счёт (за интернет или коммуналку). Что он оплачивает и сколько стоит?',
+      emoji: '🧾',
+      coinReward: 25,
+      xpReward: 35,
+      frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.hard,
+    ),
+    Task(
+      id: 'd_trade',
+      title: 'Честный обмен',
+      description:
+          'Договорись с другом о обмене вещами. Чем уравнять обмен, чтобы было честно?',
+      emoji: '🔄',
+      coinReward: 25,
+      xpReward: 35,
+      frequency: TaskFrequency.daily,
+      difficulty: TaskDifficulty.hard,
     ),
     // --- Еженедельные ---
     Task(
@@ -197,9 +275,10 @@ class TaskPool {
       description:
           'Вместе с родителем составь план: как потратить карманные деньги за неделю.',
       emoji: '📊',
-      coinReward: 35,
-      xpReward: 45,
+      coinReward: 40,
+      xpReward: 50,
       frequency: TaskFrequency.weekly,
+      difficulty: TaskDifficulty.hard,
     ),
     Task(
       id: 'w_goal',
@@ -207,9 +286,10 @@ class TaskPool {
       description:
           'Определи цель, на которую будешь копить в течение недели.',
       emoji: '🎯',
-      coinReward: 35,
-      xpReward: 45,
+      coinReward: 30,
+      xpReward: 40,
       frequency: TaskFrequency.weekly,
+      difficulty: TaskDifficulty.easy,
     ),
     Task(
       id: 'w_save_plan',
@@ -220,6 +300,7 @@ class TaskPool {
       coinReward: 35,
       xpReward: 45,
       frequency: TaskFrequency.weekly,
+      difficulty: TaskDifficulty.medium,
     ),
     Task(
       id: 'w_share',
@@ -227,9 +308,32 @@ class TaskPool {
       description:
           'Как разделить 10 монеток с другом так, чтобы и тебе, и другу было честно?',
       emoji: '🤝',
+      coinReward: 30,
+      xpReward: 40,
+      frequency: TaskFrequency.weekly,
+      difficulty: TaskDifficulty.easy,
+    ),
+    Task(
+      id: 'w_shop_list',
+      title: 'Список покупок',
+      description:
+          'Вместе с родителем составь список покупок на неделю. Сможешь найти всё, ничего не забыв?',
+      emoji: '📋',
       coinReward: 35,
       xpReward: 45,
       frequency: TaskFrequency.weekly,
+      difficulty: TaskDifficulty.medium,
+    ),
+    Task(
+      id: 'w_no_spend',
+      title: 'День без покупок',
+      description:
+          'Проведи день без лишних покупок. В каких моментах хотелось купить, но ты удержал(а) себя?',
+      emoji: '🚫',
+      coinReward: 40,
+      xpReward: 50,
+      frequency: TaskFrequency.weekly,
+      difficulty: TaskDifficulty.hard,
     ),
   ];
 }

@@ -102,6 +102,9 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
+                    _reward('${task.difficulty.badge} ${task.difficulty.label}',
+                        _difficultyColor(task.difficulty)),
+                    const SizedBox(width: 8),
                     _reward('🪙 +${task.coinReward}',
                         const Color(0xFFB8860B)),
                     const SizedBox(width: 8),
@@ -157,6 +160,12 @@ class TaskCard extends StatelessWidget {
       ),
     );
   }
+
+  Color _difficultyColor(TaskDifficulty difficulty) => switch (difficulty) {
+        TaskDifficulty.easy => const Color(0xFF3E8E4E),
+        TaskDifficulty.medium => const Color(0xFFC77800),
+        TaskDifficulty.hard => AppColors.grape,
+      };
 
   Widget _reward(String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
