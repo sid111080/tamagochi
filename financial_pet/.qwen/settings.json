@@ -63,7 +63,8 @@
       "Bash(fi)",
       "Bash(sleep *)",
       "Bash(done)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(tr *)"
     ]
   },
   "$version": 4
