@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:financial_pet/models/growth_stage.dart';
-import 'package:financial_pet/models/pet.dart';
+import 'package:financial_pet/core/models/growth_stage.dart';
+import 'package:financial_pet/core/models/pet.dart';
 
 void main() {
   group('Pet', () {

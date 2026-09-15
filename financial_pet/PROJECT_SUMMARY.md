@@ -1,73 +1,61 @@
 # Project Summary
 
 ## Overall Goal
-Build **"ФинПитомец" (Financial Pet)** — an offline Flutter mobile app teaching financial literacy to kids/youth (7–14) in Moscow via a virtual pet, for RuStore (Android), then verify the new task/piggy-bank/earnings features work end-to-end on a device (Pixel 10a emulator).
+Build **"ФинПитомец" (Financial Pet)** — an offline Flutter mobile app teaching financial literacy to kids (7–11) in Moscow, for RuStore (Android). Guided by `QWEN.md` (full ТЗ: 4-layer architecture, budget/purchases/savings/periods/adult/demo, Приложение А) and `fg_competencies.md` (competencies for the 3 topics + quiz JSON format).
 
 ## Key Knowledge
 
-### Language & conventions (from QWEN.md)
-- **UI text and code comments in Russian; code identifiers in English.**
-- No external API calls, no analytics, no ads — fully offline.
-- QWEN.md *recommends* BLoC+Hive+go_router+freezed, but **user explicitly chose to keep the existing stack: provider + shared_preferences**. Do NOT migrate unless user re-requests.
+### Conventions (QWEN.md)
+- UI text + comments in **Russian**, code identifiers in **English**.
+- Offline only — no API/analytics/ads; no child PII, no real money, no accounts (guest mode).
+- **Stack: provider + shared_preferences** (user chose this; do NOT migrate to BLoC/Hive without re-request). QWEN.md recommends BLoC+Hive+go_router+freezed but the working prototype stays provider-based.
+- Accessibility: ≥48dp targets, ≥16sp text, color never the only signal, confirm destructive actions.
+- "Safe mistake" principle: a bad choice creates a task (retry / fix budget), never zeroes progress, never scares/shames.
 
 ### Tech / environment
-- Project dir: `/Users/alexander/tamagochi/financial_pet`. **Git root is the PARENT `/Users/alexander/tamagochi`**. Android `applicationId`: `ru.rustore.financial_pet`. Android-only (no `ios/`).
-- SDK: Flutter (Dart 3.x, uses `withValues(alpha:)`, `CardThemeData`, Material 3); deps: provider, shared_preferences, intl, **fl_chart 0.70.2** (resolves from `^0.67.0`).
-- `adb` is NOT on PATH — use `~/Library/Android/sdk/platform-tools/adb`.
-- Device: **`emulator-5554` (AVD `Pixel_10a`)** — this is the "device" to test on. Verify: `~/Library/Android/sdk/platform-tools/adb devices`.
-- Verify: `flutter analyze && flutter test` (both run from project dir). **Currently 43 tests pass, analyze clean.**
+- Dir: `/Users/alexander/tamagochi/financial_pet`. **Git root = parent `/Users/alexander/tamagochi`** (no nested `.git`). Android `applicationId`: `ru.rustore.financial_pet`; Android-only (no `ios/`).
+- Flutter Dart 3.x (uses `withValues(alpha:)`, `CardThemeData`, Material 3). Deps: provider, shared_preferences, intl, fl_chart ^0.70.2, flutter_launcher_icons.
+- Verify: `flutter analyze` + `flutter test` from project dir. **CURRENT STATE: 45 tests pass, analyze clean, `flutter build apk` succeeds** (asset `assets/content/tasks.json` bundles).
+- Device: `emulator-5554` (AVD Pixel_10a); `adb` via `~/Library/Android/sdk/platform-tools/adb`.
 
-### fl_chart 0.70 API gotchas (learned the hard way)
-- `BarChart(data, duration: ...)` — **data is a positional argument** (`data:` named param does NOT exist).
-- `List.takeLast` is not available in this SDK — slice manually with `sublist`.
-- `BarChartGroupData` has **no `showTooltips`** param in 0.70.
+### fl_chart 0.70 gotchas
+- `BarChart(data, duration:)` — **data is positional** (no `data:` named param).
+- No `List.takeLast` in this SDK — slice with `sublist`.
+- `BarChartGroupData` has **no `showTooltips`** in 0.70.
 
-### Architecture (provider-based, all services `ChangeNotifier` + SharedPreferences)
-- **Models** (`lib/models/`): `Pet`, `Wallet`+`CoinTransaction` (amount>0=income, <0=spend, max 40 tx stored), `Task`+`TaskPool`, `PetSpecies`, `GrowthStage`, **NEW `StreakBadge`** (3/7/30 days, `isEarned(maxStreak)`), **NEW `PiggyBankGoal`** (id/title/emoji/target/saved/rewarded, `isReached`, `progress`).
-- **Services** (`lib/services/`), dependency order in `lib/main.dart`: `WalletService(prefs)` → `PetService(prefs, wallet)` → `TaskService(prefs, wallet, pet)` → **`PiggyBankService(prefs, wallet, pet)`**.
-  - `TaskService`: injectable `DateTime Function() clock = DateTime.now` (tests override by reassigning a shared `now` var). Rotation: `tasks_v2` storage `{day, week, ids, streak, maxStreak, lastStreakDay, completed{}}`; 3 daily + 2 weekly per period, seeded `Random(int.parse(dayKey))`; v1 migration; history pruned to 30 days.
-  - `PetService.addXp(amount)` (generic) with `addXpForTask` delegating to it.
-  - `PiggyBankService`: `piggy_bank_v1` storage; `addGoal(title, emoji, target)`, `saveToGoal(id, amount)` (clamps to remaining, `wallet.trySpend`), `goalReachedXp = 20` granted once.
-- **UI** (`lib/screens/home_screen.dart`): 3 bottom tabs — Питомец / Задания / Кошелёк (`IndexedStack`).
-  - Tasks tab: header row (Доступно: N + 🔥 streak chip), `_StreakBadgesRow`, `TaskCard`s, `_EmptyTasks` ("Все задания выполнены! Возвращайся завтра за новыми."), completion via `_confirmComplete` dialog (buttons: **"Да, выполнил(а)!"** / **"Пока нет"**).
-  - Wallet tab: balance card, `EarningsChart` (`lib/widgets/earnings_chart.dart` — 7-day bars + `dailyIncomes()` + `EmptyChartHint`), piggy bank goals (`_GoalCard`, button **"Копить"** → dialog 5/10/20), **"Новая цель"** → `_AddGoalDialog` (TextField "На что копишь?", emoji chips 🎯🚲🎮🧸🛴📚, target chips 50/100/200, button **"Создать"** disabled when title empty).
-  - Care buttons on pet tab: Кормить(15) / Играть(10) / Мыть(10).
-- **Top-level helper `SnackBar _snack(String)`** in home_screen.dart (moved out of `_TasksTab` after define-before-use errors).
-- Mechanics: xpPerLevel 60; daily tasks easy 15/25, medium 20/30, hard 25/35; weekly 30–40 / 40–50; wallet starts 50.
+### Architecture — 4-layer (this session; ТЗ §4, §13)
+`lib/` → `app/theme.dart` + `core/{models,services}` + `data/content` + `features/{onboarding,pet_creation,home,tasks}` + `widgets/`.
 
-### Device-testing notes (this model can't view images)
-- Drive UI via **`adb -s emulator-5554 shell uiautomator dump /sdcard/ui.xml`** then `adb -s emulator-5554 shell cat /sdcard/ui.xml` and extract bounds (single-line XML — split with `tr '>' '\n'`, look for `text="..." clickable="true"` and `bounds=[x1,y1][x2,y2]`), tap with `adb shell input tap X Y` at center.
-- `flutter run` debug session died (Dart VM service websocket error) but app process may still be alive (PID 17707); check with `adb shell pidof ru.rustore.financial_pet`; if dead, start via `adb shell monkey -p ru.rustore.financial_pet -c android.intent.category.LAUNCHER 1`.
-- Cyrillic input untested: try `adb -s emulator-5554 shell input text "Велосипед"`; fallback needed if it mangles (text field is required for goal creation).
-- Watch for crashes: `adb -s emulator-5554 logcat` / flutter log for `EXCEPTION` (esp. fl_chart on wallet tab).
+- **core/models/**: `Pet`, `Wallet`+`CoinTransaction`, `PetSpecies`, `GrowthStage`, `StreakBadge`, `PiggyBankGoal`, **`Task` (quiz format)** + `TaskOption`. Enums: `TaskTopic` (planning_budget|savings|payments), `TaskType` (choice), `TaskDifficulty` (easy|medium), `PetConsequence` (happy|neutral|sad). All enum `parse()` return **non-nullable** with defaults. `Task` is content-only; runtime state lives in the service.
+  - `firstWhereOrNull` is a **local top-level helper** in task.dart (Dart core `Iterable` has `firstOrNull` but NOT `firstWhereOrNull`).
+- **core/services/** (ChangeNotifier + SharedPreferences, `main.dart` order): `WalletService(prefs)` → `PetService(prefs, wallet)` → `TaskService(prefs, wallet, pet, content)` → `PiggyBankService(prefs, wallet, pet)`.
+  - `TaskService` (quiz): injectable `clock`. Storage key `quiz_tasks_v1` = `{day, ids, streak, maxStreak, lastStreakDay, completed{}}`. Rotates **3/day** from the content pool, seeded `Random(int.parse(dayKey))` ("приходи завтра" is true). `answer(taskId, optionId) → QuizResult?`: correct → reward (coins) + `quizXp=20` + pet `reactToQuiz(happy)` + completed + streak; wrong → no reward + pet sad + retryable. `resetProgress()` for demo/reset.
+  - `PetService` gained `reactToQuiz(moodDelta)` (happy +15 / neutral 0 / sad −15 to fun & hunger) — separates pet from the Task model.
+- **data/content/**: `ContentRepository` (const ctor; `loadTasks()` via `rootBundle`; injectable `loader` for tests) → `assets/content/tasks.json` = **9 quiz tasks (3/topic: planning_budget, savings, payments), 27 options**, exactly per fg_competencies.md format.
+- **features/**: `onboarding/splash_screen.dart`, `pet_creation/create_pet_screen.dart` (5 species, 9+ combos, name), `home/home_screen.dart` (3 tabs: Питомец / `TasksTab` / Кошелёк, `IndexedStack`), `tasks/{TasksTab, QuizScreen, QuizTaskCard}.dart`.
+- **Quiz UI**: `QuizScreen` = scenario → options → feedback panel (pet reaction emoji + explanation + reward on correct; "Попробовать ещё" on wrong, disables tried-wrong options).
+- **Removed this session**: old `lib/widgets/task_card.dart` + activity-task `TaskPool` (12 daily + 6 weekly) — replaced by the quiz system.
+- Mechanics: `xpPerLevel 60`; quiz reward = content `reward` (coins) + 20 XP; wallet starts 50; daily streak 🔥 + badges 3/7/30 (by maxStreak) retained; piggy bank (goals, save 5/10/20, +20 XP on reach) retained.
 
-### Git (do NOT commit without asking)
-- Earlier the user **denied/cancelled** investigation of why the parent repo doesn't list `lib/`/`test/` changes (suspected nested `.git` in `financial_pet`). Never commit until user clarifies; if committing, stage only project paths, never `.DS_Store`/`.qwen`.
+## What's still TODO (ТЗ, not yet built)
+- **Игровые периоды** (5 sequential, plan-vs-fact) — no period system yet.
+- **План бюджета** (3 directions: обязательные/необязательные/накопления, остаток) — the ТЗ §8.5 core, absent.
+- **Покупки** (8 positions, 2 types, price/category/effect, history) — only 3 care actions exist.
+- **Финансовые цели** (3 predefined with cost) — piggy bank has user-created goals only.
+- **Развитие питомца** (3 stages by decisions over periods) — currently XP/level only.
+- **Раздел для взрослого** (barrier, progress, reset/delete), **демо-режим**, **онбординг** (3 decision types), **история + глоссарий**.
+- 9 pet combos / 3 stages — 5 species × 4 growth stages exist (meets ≥9).
 
-## Recent Actions
-1. **[DONE]** MVP task system (prior turn, user approved): pool 12 daily + 6 weekly, 3+2/day seeded rotation, difficulty 🌱/🌿/🌳, confirmation dialog, daily streak 🔥. 35 tests.
-2. **[DONE]** This session (user: "давай вот это сделай…"):
-   - `lib/models/streak_badge.dart` (3/7/30, 🥉🥈🥇); `TaskService` gained `maxStreak` (persisted, badge basis) + load/save of `maxStreak`.
-   - `lib/models/piggy_bank_goal.dart` + `lib/services/piggy_bank_service.dart`; wired into `main.dart`.
-   - `PetService.addXp()` added (used by piggy-bank goal reward).
-   - `lib/widgets/earnings_chart.dart`: `EarningsChart` (fl_chart bars, weekday labels from real dates) + `dailyIncomes()` + `EmptyChartHint`.
-   - `home_screen.dart`: 3rd tab Кошелёк (balance, chart, piggy bank), `_StreakBadgesRow` in tasks tab, `_GoalCard`, `_openSaveGoal`/`_openAddGoal` dialogs, top-level `_snack`.
-   - Tests: new `test/piggy_bank_service_test.dart` (6 tests), 2 new streak/badge tests in `task_service_test.dart`, 3 new pool tests in `task_test.dart` → **43 tests pass, analyze clean**.
-   - `TODO.md` updated to reflect current state.
-3. **[DONE]** Build: `flutter build apk --debug` → `build/app/outputs/flutter-apk/app-debug.apk` (exit 0).
-4. **[DONE]** Started emulator Pixel_10a (`emulator-5554`, boot completed); a second `emulator` launch attempt failed (duplicate AVD lock) — the original emulator instance is what's running, **leave it alone**.
-5. **[DONE]** Installed APK via `adb -s emulator-5554 install -r build/app/outputs/flutter-apk/app-debug.apk` (Success); `flutter run -d emulator-5554` launched app (PID 17707, "flutter loaded normally") but then its VM-service connection died (exit 2, benign for a plain tap-test).
-6. **[IN PROGRESS]** UI walk-through: first `uiautomator dump` on the (fresh-install) screen returned only `text=""` (likely the Create-pet splash — Flutter text nodes often surface with empty `text` attr; the dump may need `shell cat` parsing of `content-desc`/bounds, or the app may be on the species-picker step).
+## Device-testing notes (model can't view images)
+- Drive UI via `adb -s emulator-5554 shell uiautomator dump /sdcard/ui.xml` → `shell cat` → split single-line XML with `tr '>' '\n'`; Flutter text often empty, use `content-desc`+bounds; tap `adb shell input tap X Y` at center.
+- If app process dead: `adb shell monkey -p ru.rustore.financial_pet -c android.intent.category.LAUNCHER 1`.
+- Cyrillic input untested (`adb shell input text "Велосипед"`); goal creation requires a text field.
+- Watch `adb logcat` for `EXCEPTION` (esp. fl_chart on wallet tab).
 
-## Current Plan
-1. **[TODO]** Confirm app is alive: `adb -s emulator-5554 shell pidof ru.rustore.financial_pet`; if dead, relaunch via `adb shell monkey -p ru.rustore.financial_pet -c android.intent.category.LAUNCHER 1`.
-2. **[TODO]** Parse `uiautomator dump` properly (dump is single-line XML; split with `tr '>' '\n'`; also look at `content-desc` since Flutter text may be empty there) to identify the current screen (expected: pet-creation splash) and find tappable elements/bounds.
-3. **[TODO]** Tap-test the requested flow: create pet (name may be skippable — default "Питомец") → tab **Задания**: for each available card tap "Выполнить" then "Да, выполнил(а)!" (5 times, 3 daily + 2 weekly; note weekly reward buttons) → expect "Все задания выполнены! Возвращайся завтра…" + 🔥1 streak + first badge row; watch `logcat` for exceptions.
-4. **[TODO]** Tab **Кошелёк**: balance, earnings chart (check no fl_chart crash), create a goal ("Новая цель" — try `input text` for Cyrillic; emoji/target chips preselected by default; "Создать"), tap "Копить" → 10 → verify progress + "В копилку +10" toast; try saving until goal reached to see "Цель достигнута! +20 XP".
-5. **[TODO]** Report results in Russian (what worked, any overflow/crash findings, fix any found, re-verify with analyze/tests).
-6. **[TODO, needs user OK]** Commit question is still open (git-tracking anomaly in `tamagochi` root; user denied investigating it before) — re-ask before any commit.
+## Git
+- **Do NOT commit without asking** (user previously declined commit; git-tracking anomaly in parent repo uninvestigated). If committing, stage only project paths — never `.DS_Store`/`.qwen`.
 
 ---
 
 ## Summary Metadata
-**Update time**: 2026-09-13T21:03:53.271Z
+**Update time**: 2026-09-15 (post 4-layer refactor + quiz task system; 45 tests, analyze clean, APK builds)

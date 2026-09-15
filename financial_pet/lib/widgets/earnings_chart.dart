@@ -3,8 +3,8 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../models/wallet.dart';
-import '../theme/app_theme.dart';
+import '../core/models/wallet.dart';
+import '../app/theme.dart';
 
 /// Подписи дней недели: понедельник — воскресенье.
 const List<String> _weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];

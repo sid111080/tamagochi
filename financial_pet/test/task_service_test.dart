@@ -1,11 +1,47 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:financial_pet/models/streak_badge.dart';
-import 'package:financial_pet/models/task.dart';
-import 'package:financial_pet/services/pet_service.dart';
-import 'package:financial_pet/services/task_service.dart';
-import 'package:financial_pet/services/wallet_service.dart';
+import 'package:financial_pet/core/models/task.dart';
+import 'package:financial_pet/core/services/pet_service.dart';
+import 'package:financial_pet/core/services/task_service.dart';
+import 'package:financial_pet/core/services/wallet_service.dart';
+
+/// Пул заданий для теста: 5 штук (ротация забирает 3).
+List<Task> _pool() => [
+      for (var i = 0; i < 5; i++)
+        Task(
+          id: 't$i',
+          topic: TaskTopic.values[i % TaskTopic.values.length],
+          title: 'Задание $i',
+          scenario: 'Ситуация $i',
+          competencyRef: 'ref',
+          type: TaskType.choice,
+          options: [
+            const TaskOption(
+              id: 'a',
+              text: 'верный',
+              isCorrect: true,
+              consequencePet: PetConsequence.happy,
+              consequenceBalance: 0,
+              explanationCorrect: 'молодец',
+              explanationWrong: '',
+            ),
+            const TaskOption(
+              id: 'b',
+              text: 'неверный',
+              isCorrect: false,
+              consequencePet: PetConsequence.sad,
+              consequenceBalance: 0,
+              explanationCorrect: '',
+              explanationWrong: 'попробуй ещё',
+            ),
+          ],
+          reward: 30,
+          minAge: 7,
+          maxAge: 11,
+          difficulty: TaskDifficulty.easy,
+        ),
+    ];
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +58,7 @@ void main() {
     wallet = WalletService(prefs);
     pet = PetService(prefs, wallet);
     pet.createPet('Муся', 'kitten');
-    tasks = TaskService(prefs, wallet, pet);
+    tasks = TaskService(prefs, wallet, pet, _pool());
     now = tasks.clock();
     tasks.clock = () => now;
   });
@@ -33,117 +69,130 @@ void main() {
     wallet.dispose();
   });
 
-  test('свежий набор: 3 ежедневных + 2 еженедельных', () {
-    expect(tasks.dailyTasks, hasLength(3));
-    expect(tasks.weeklyTasks, hasLength(2));
-    expect(tasks.availableCount, 5);
+  test('свежий набор: из пула 5 выбираются 3', () {
+    expect(tasks.tasks, hasLength(3));
+    expect(tasks.availableCount, 3);
+    expect(tasks.completedTasks, isEmpty);
   });
 
-  test('ротация детерминирована: два сервиса выбирают одинаково', () {
+  test('ротация детерминирована: два сервиса на тот же день выбирают одинаково',
+      () {
     final a = tasks.selectedIds;
-    final b = TaskService(prefs, wallet, pet).selectedIds;
+    final b = TaskService(prefs, wallet, pet, _pool()).selectedIds;
     expect(a, b);
+    expect(a, hasLength(3)); // _tasksPerDay
+    expect(tasks.availableCount, 3);
   });
 
-  test('выполнение: награда в кошелёк и опыт питомцу', () {
+  test('после полуночи выполнившееся задание снова доступно (повтор)', () {
+    final t = tasks.availableTasks.first;
+    tasks.answer(t.id, 'a');
+    expect(tasks.availableTasks.map((x) => x.id), isNot(contains(t.id)));
+    // Новый день: задание выполнено «вчера» → доступно для повторного обзора.
+    now = now.add(const Duration(days: 1));
+    expect(tasks.availableTasks.map((x) => x.id), contains(t.id));
+  });
+
+  test('верный ответ: награда, опыт, питомец рад, задание закрыто', () {
     final t = tasks.availableTasks.first;
     final balanceBefore = wallet.balance;
     final xpBefore = pet.pet!.totalXp;
+    final funBefore = pet.pet!.fun;
 
-    expect(tasks.completeTask(t.id), isTrue);
+    final result = tasks.answer(t.id, 'a');
 
-    expect(wallet.balance, balanceBefore + t.coinReward);
-    expect(pet.pet!.totalXp, xpBefore + t.xpReward);
-    expect(tasks.completedTasks, contains(t));
+    expect(result, isNotNull);
+    expect(result!.isCorrect, isTrue);
+    expect(result.reward, t.reward);
+    expect(wallet.balance, balanceBefore + t.reward);
+    expect(pet.pet!.totalXp, xpBefore + quizXp);
+    expect(pet.pet!.fun, greaterThan(funBefore)); // питомец рад
+    expect(tasks.completedTasks.map((x) => x.id), contains(t.id));
+    expect(tasks.streak, 1);
   });
 
-  test('повторное выполнение в тот же период отклоняется', () {
+  test('неверный ответ: без награды, питомец грустит, можно повторить', () {
     final t = tasks.availableTasks.first;
-    final balanceAfterFirst = wallet.balance + t.coinReward;
+    final balanceBefore = wallet.balance;
+    final funBefore = pet.pet!.fun;
 
-    expect(tasks.completeTask(t.id), isTrue);
-    expect(tasks.completeTask(t.id), isFalse);
-    expect(wallet.balance, balanceAfterFirst);
+    final result = tasks.answer(t.id, 'b');
+
+    expect(result, isNotNull);
+    expect(result!.isCorrect, isFalse);
+    expect(result.reward, 0);
+    expect(wallet.balance, balanceBefore); // без последствий баланса
+    expect(pet.pet!.fun, lessThan(funBefore)); // питомец грустит
+    // Задание ещё доступно — можно попробовать ещё раз.
+    expect(tasks.availableTasks.map((x) => x.id), contains(t.id));
+    expect(tasks.completedTasks, isEmpty);
   });
 
-  test('стрик: подряд два дня — 2, пропуск дня — сброс в 1', () {
-    final daily = TaskFrequency.daily;
+  test('повторное верное в тот же день отклоняется', () {
+    final t = tasks.availableTasks.first;
+    tasks.answer(t.id, 'a');
+    expect(tasks.answer(t.id, 'a'), isNull);
+  });
 
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+  test('ответ на не-существующий вариант → null', () {
+    final t = tasks.availableTasks.first;
+    expect(tasks.answer(t.id, 'nope'), isNull);
+  });
+
+  test('повторное верное на следующий день: награда и стрик растёт', () {
+    final t = tasks.availableTasks.first;
+    tasks.answer(t.id, 'a');
     expect(tasks.streak, 1);
 
     now = now.add(const Duration(days: 1));
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+    // Вчера выполняли — стрик продолжится при новом выполнении.
+    expect(tasks.availableTasks, isNotEmpty);
+    tasks.answer(tasks.availableTasks.first.id, 'a');
     expect(tasks.streak, 2);
-
-    // Пропустили день: вчера стрика не было — сброс.
-    now = now.add(const Duration(days: 2));
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
-    expect(tasks.streak, 1);
   });
 
-  test('повторное выполнение в тот же день не дублирует стрик', () {
-    final daily = TaskFrequency.daily;
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
-    expect(tasks.streak, 1);
-  });
-
-  test('выполненное «вчера» задание на следующий день снова доступно', () {
-    final t = tasks.availableTasks.first;
-    tasks.completeTask(t.id);
+  test('максимальный стрик не сбрасывается при пропуске дней', () {
+    tasks.answer(tasks.availableTasks.first.id, 'a');
+    expect(tasks.maxStreak, 1);
     now = now.add(const Duration(days: 1));
-    expect(t.isAvailableNow(now), isTrue);
-  });
-
-  test('повторное выполнение в пределах одного дня отклоняется', () {
-    final t = tasks.availableTasks.first;
-    tasks.completeTask(t.id);
-    // Тот же день — задание выполнено и недоступно.
-    expect(t.isAvailableNow(now), isFalse);
-    expect(tasks.completeTask(t.id), isFalse);
-  });
-
-  test('максимальный стрик не сбрасывается: бейджи считаются по лучшему', () {
-    final daily = TaskFrequency.daily;
-
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
-    now = now.add(const Duration(days: 1));
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+    tasks.answer(tasks.availableTasks.first.id, 'a');
     expect(tasks.maxStreak, 2);
 
-    // Пропустили несколько дней: стрик сброшен, а рекорд сохранился.
+    // Пропустили несколько дней: стрик сбросился, рекорд сохранился.
     now = now.add(const Duration(days: 3));
-    tasks.completeTask(
-        tasks.availableTasks.firstWhere((t) => t.frequency == daily).id);
+    tasks.answer(tasks.availableTasks.first.id, 'a');
     expect(tasks.streak, 1);
     expect(tasks.maxStreak, 2);
-    expect(StreakBadge.all.first.isEarned(tasks.maxStreak), isFalse);
-  });
-
-  test('бейдж начисляется при достижении порога', () {
-    final bronze = StreakBadge.all.first;
-    expect(bronze.isEarned(2), isFalse);
-    expect(bronze.isEarned(3), isTrue);
   });
 
   test('история сохраняется: новый сервис видит выполнения и стрик', () {
-    final t = tasks.availableTasks
-        .firstWhere((t) => t.frequency == TaskFrequency.daily);
-    tasks.completeTask(t.id);
+    final t = tasks.availableTasks.first;
+    tasks.answer(t.id, 'a');
+    expect(tasks.streak, 1);
 
     tasks.dispose();
-    tasks = TaskService(prefs, wallet, pet);
+    tasks = TaskService(prefs, wallet, pet, _pool());
     tasks.clock = () => now;
 
     expect(tasks.streak, 1);
-    expect(tasks.completedTasks.map((t) => t.id), contains(t.id));
+    expect(tasks.completedTasks.map((x) => x.id), contains(t.id));
+  });
+
+  test('resetProgress: очищает выполнения и стрик', () {
+    tasks.answer(tasks.availableTasks.first.id, 'a');
+    expect(tasks.completedTasks, isNotEmpty);
+    expect(tasks.streak, 1);
+
+    tasks.resetProgress();
+    expect(tasks.streak, 0);
+    expect(tasks.maxStreak, 0);
+    expect(tasks.completedTasks, isEmpty);
+    expect(tasks.availableCount, 3);
+  });
+
+  test('пустой контент: ничего не предлагает, answer → null', () {
+    final empty = TaskService(prefs, wallet, pet, const []);
+    expect(empty.availableCount, 0);
+    expect(empty.answer('t0', 'a'), isNull);
   });
 }

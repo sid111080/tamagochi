@@ -64,7 +64,11 @@
       "Bash(sleep *)",
       "Bash(done)",
       "Read(//tmp/**)",
-      "Bash(tr *)"
+      "Bash(tr *)",
+      "Bash(sed *)",
+      "Bash(cp *)",
+      "Bash(rm *)",
+      "Bash(wc *)"
     ]
   },
   "$version": 4

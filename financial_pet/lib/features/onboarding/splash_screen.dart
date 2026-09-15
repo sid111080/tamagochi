@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import 'create_pet_screen.dart';
-import 'home_screen.dart';
+import '../../app/theme.dart';
+import '../pet_creation/create_pet_screen.dart';
+import '../home/home_screen.dart';
 
 /// Стартовый экран с логотипом и навигацией.
 class SplashScreen extends StatefulWidget {

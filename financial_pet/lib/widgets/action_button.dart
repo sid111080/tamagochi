@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../app/theme.dart';
 
 /// Крупная дружелюбная кнопка действия (кормить, играть, мыть).
 class CareActionButton extends StatelessWidget {

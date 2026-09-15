@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../models/pet.dart';
-import '../models/pet_species.dart';
+import '../app/theme.dart';
+import '../core/models/pet.dart';
+import '../core/models/pet_species.dart';
 
 /// Уровень питомца + прогресс до следующего.
 class LevelIndicator extends StatelessWidget {

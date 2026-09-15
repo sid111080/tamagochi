@@ -125,6 +125,17 @@ class PetService extends ChangeNotifier {
     _save();
   }
 
+  /// Реакция питомца на результат квиза: [moodDelta] > 0 — рад, < 0 — грустит.
+  /// Настроение обратимо, без страха и стыда (принцип «безопасной ошибки» ТЗ §6).
+  void reactToQuiz(double moodDelta) {
+    final p = _pet;
+    if (p == null || moodDelta == 0) return;
+    p.fun = (p.fun + moodDelta).clamp(0, 100);
+    p.hunger = (p.hunger + moodDelta * 0.4).clamp(0, 100);
+    p.lastDecayAt = DateTime.now();
+    _save();
+  }
+
   /// Начислить опыт за выполнение задания.
   void addXpForTask(int amount) => addXp(amount);
 

@@ -1,0 +1,371 @@
+[
+  {
+    "id": "pb_feed_or_toy",
+    "topic": "planning_budget",
+    "title": "Корм или игрушка?",
+    "scenario": "У Финни 100 фиников. Корм стоит 30 (нужен каждый день). Игрушка стоит 50 (весело, но не обязательно). Что покупаем в первую очередь?",
+    "competency_ref": "Тема 1, базовый: различать обязательные и необязательные расходы",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Сначала корм, потом игрушку, если хватит",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -80,
+        "explanation_correct": "Молодец! Сначала — обязательное, то есть корм. Осталось 70 фиников, и игрушка тоже поместилась. Финни сыт и доволен!",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Только игрушку",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": -50,
+        "explanation_correct": "",
+        "explanation_wrong": "Игрушка — это здорово, но без корма Финни будет голодным. Сначала — нужное, потом — желанное. Давай попробуем ещё раз!"
+      },
+      {
+        "id": "c",
+        "text": "Сначала игрушку, потом корм",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": -80,
+        "explanation_correct": "",
+        "explanation_wrong": "Всё успели купить, но лучше начинать с обязательного. Если бы денег было меньше, на корм могло не хватить. Запомни: сначала нужное!"
+      }
+    ],
+    "reward": 30,
+    "min_age": 7,
+    "max_age": 11,
+    "difficulty": "easy"
+  },
+  {
+    "id": "pb_split",
+    "topic": "planning_budget",
+    "title": "Раздели монетки",
+    "scenario": "Тебе выдали 100 фиников на неделю. Обед стоит 60, новая книжка 60. Куда распределить, чтобы и пообедать, и на книжку отложить?",
+    "competency_ref": "Тема 1, базовый: составлять личный бюджет и принимать решения по нему",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "60 на обед, 40 отложить на книжку",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -60,
+        "explanation_correct": "Идеальный план! Обед — обязательный, покрыли. И 40 уже копишь на книжку. Вот это и есть бюджет: деньги разложены по делам.",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "100 сразу потратить на книжку и игру",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": -100,
+        "explanation_correct": "",
+        "explanation_wrong": "Книжка — отлично, но тогда на обед не осталось. План сначала — потом покупки. Попробуй разложить по-другому!"
+      },
+      {
+        "id": "c",
+        "text": "50 на обед, 50 на книжку, остальное в копилку",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": -50,
+        "explanation_correct": "",
+        "explanation_wrong": "Хорошо, что думаешь про копилку! Но обед стоит 60, а ты заложил 50 — не хватит. Проверь, чтобы обязательное покрылось целиком."
+      }
+    ],
+    "reward": 35,
+    "min_age": 8,
+    "max_age": 11,
+    "difficulty": "medium"
+  },
+  {
+    "id": "pb_need_want",
+    "topic": "planning_budget",
+    "title": "Нужно или хочется?",
+    "scenario": "В списке: вода, конфеты, шапка (холодно!), второй пакет конфет. Что из этого — обязательное, а что — по желанию?",
+    "competency_ref": "Тема 1, базовый: распознавать обязательные и необязательные расходы",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Вода и шапка — нужное; конфеты — по желанию",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": 0,
+        "explanation_correct": "Вот так! Вода и тёплая шапка нужны каждый день, а конфеты — приятно, но можно отложить. Умеешь отличать «надо» от «хочу»!",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Всё важное, без конфет никак",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "Конфеты — приятное, а не необходимое. Если денег мало, сначала закрываем воду и тепло. Попробуй отделить нужное от желанного!"
+      },
+      {
+        "id": "c",
+        "text": "Только вода обязательна, шапку не рассматриваем",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "Шапка зимой — тоже обязательная, без неё замёрзнешь. Обязательное — то, без чего нельзя. Давай поправим список!"
+      }
+    ],
+    "reward": 30,
+    "min_age": 7,
+    "max_age": 11,
+    "difficulty": "easy"
+  },
+  {
+    "id": "sv_goal",
+    "topic": "savings",
+    "title": "Цель копилки",
+    "scenario": "Ты хочешь купить велосипед за 200 фиников. У тебя 40. Как поставить цель и начать копить, чтобы дойти до 200?",
+    "competency_ref": "Тема 2, базовый: ставить финансовую цель накопления",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Назвать цель «200 фиников» и класть по 20 каждую неделю",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -20,
+        "explanation_correct": "Молодец! Есть ясная цель и простой план: по 20 в неделю. Через 8 недель — велосипед! Так и копят: цель + регулярность.",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Просто копить, когда захочется, без конкретной суммы",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "Копить «когда захочется» — это не цель. Дай копилке цифру: сколько именно нужно собрать. Тогда понятно, дошёл ли ты!"
+      },
+      {
+        "id": "c",
+        "text": "Взять все 40 сразу и купить дешёвое, а не копить",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": -40,
+        "explanation_correct": "",
+        "explanation_wrong": "Велосипед за 200 не купить на 40. Если ждать нужную сумму, придётся копить. Давай назовём цель и начнём откладывать!"
+      }
+    ],
+    "reward": 30,
+    "min_age": 7,
+    "max_age": 11,
+    "difficulty": "easy"
+  },
+  {
+    "id": "sv_emergency",
+    "topic": "savings",
+    "title": "Нежданный расход",
+    "scenario": "Ты копит 50 фиников на новый мяч. Вдруг питомцу нужна «визита к врачу» за 30. Что делать со сбережениями?",
+    "competency_ref": "Тема 2, базовый: зачем нужна финансовая подушка безопасности",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Взять 30 из копилки на помощь, потом копить дальше",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -30,
+        "explanation_correct": "Верное решение! Сбережения как «подушка безопасности»: они выручают, когда неожиданно что-то случилось. Цель не пропала — просто продолжим копить.",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Не трогать копилку, мяч важнее",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "Помощь — обязательная забота, мяч подождёт. Сбережения как раз и нужны на такие случаи. Лучше выручить питомца. Попробуй ещё раз!"
+      },
+      {
+        "id": "c",
+        "text": "Взять все 50, а не только 30",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": -50,
+        "explanation_correct": "",
+        "explanation_wrong": "Нужно 30, а не все 50. Откладывай ровно столько, сколько требуется, — остальное вернётся к твоей цели. Давай точнее!"
+      }
+    ],
+    "reward": 35,
+    "min_age": 8,
+    "max_age": 11,
+    "difficulty": "medium"
+  },
+  {
+    "id": "sv_pace",
+    "topic": "savings",
+    "title": "Сколько откладывать?",
+    "scenario": "Цель — 60 фиников, и ты хочешь собрать их за 3 дня. Сколько класть в копилку каждый день?",
+    "competency_ref": "Тема 2, базовый: составлять план действий для достижения цели",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "По 20 в день, 3 дня — как раз 60",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -20,
+        "explanation_correct": "Отлично посчитал(а)! 20 × 3 = 60. Так и строится план: делим цель на количество дней и откладываем по чуть-чуть.",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "По 10 в день",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": -10,
+        "explanation_correct": "",
+        "explanation_wrong": "10 × 3 = 30, а нужно 60. Не хватит. Попробуй поделить цель на три дня — получится побольше. Давай ещё раз!"
+      },
+      {
+        "id": "c",
+        "text": "Весь раз по 60 одним днём",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "60 одним днём — возможно, но так тяжело. Поменьше каждый день копить проще и спокойнее. Давай разложим на три дня!"
+      }
+    ],
+    "reward": 30,
+    "min_age": 8,
+    "max_age": 11,
+    "difficulty": "medium"
+  },
+  {
+    "id": "pm_compare",
+    "topic": "payments",
+    "title": "Два похожих стакана",
+    "scenario": "Есть два стакана: за 15 фиников стеклянный (не ломается) и за 10 пластиковый (хрупок). Какой выгоднее купить и почему?",
+    "competency_ref": "Тема 3, базовый: сравнивать цены и выбирать по соотношению цены и пользы",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Стеклянный: на 5 дороже, но служит дольше",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -15,
+        "explanation_correct": "Умный выбор! Подороже, но не сломается — в итоге выйдет дешевле. Сравнивать не только цену, но и пользу — вот настоящее умение покупателя.",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Пластиковый: он же дешевле",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": -10,
+        "explanation_correct": "",
+        "explanation_wrong": "Дешевле — да, но ломается. Купишь ещё и ещё, и выльется больше. Посмотри на пользу, а не только на цену. Попробуй сравнить!"
+      },
+      {
+        "id": "c",
+        "text": "Ни один, просто пройтись мимо",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "Если стакан нужен, выбирать придётся. Давай сравним оба по цене и пользе и выберем самый выгодный."
+      }
+    ],
+    "reward": 35,
+    "min_age": 7,
+    "max_age": 11,
+    "difficulty": "medium"
+  },
+  {
+    "id": "pm_change",
+    "topic": "payments",
+    "title": "Сдача и чек",
+    "scenario": "Обед стоит 25 фиников, а у тебя купюра на 50. Сколько сдачи ты должен(на) получить? И что важно сохранид?",
+    "competency_ref": "Тема 3, базовый: проверять сдачу и сохранять чек",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Сдача 25, и сохраняю чек на случай возврата",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": -25,
+        "explanation_correct": "Точно! 50 − 25 = 25 сдачи. И чек — твой друг: по нему можно вернуть или обменять покупку. Отличная покупка!",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Сдача 35, чек не нужен",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": -25,
+        "explanation_correct": "",
+        "explanation_wrong": "Давай пересчитаем: 50 − 25 = 25, а не 35. И чек лучше сохранить — он пригодится. Проверь ещё раз!"
+      },
+      {
+        "id": "c",
+        "text": "Сдачи не должно быть вообще",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": -25,
+        "explanation_correct": "",
+        "explanation_wrong": "Если отдал 50, а обед 25, тебе должны вернуть 25. Считай сдачу — это помогает не переплачивать. Попробуем ещё!"
+      }
+    ],
+    "reward": 30,
+    "min_age": 7,
+    "max_age": 11,
+    "difficulty": "easy"
+  },
+  {
+    "id": "pm_fraud",
+    "topic": "payments",
+    "title": "Знакомый с улицы",
+    "scenario": "Незнакомец шепчет: «Дай мне 30 фиников — отдам вдвое больше завтра!» Что делать?",
+    "competency_ref": "Тема 3, базовый: распознавать мошеннические предложения",
+    "type": "choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Вежливо отказаться и сразу сказать маме или папе",
+        "is_correct": true,
+        "consequence_pet": "happy",
+        "consequence_balance": 0,
+        "explanation_correct": "Молодец! Слишком красивое «вдвое больше» — это ловушка. Настоящий друг финансов сказан: отказываемся и рассказываем взрослому. Ты в безопасности!",
+        "explanation_wrong": ""
+      },
+      {
+        "id": "b",
+        "text": "Дать, вдруг правда удвоит",
+        "is_correct": false,
+        "consequence_pet": "sad",
+        "consequence_balance": -30,
+        "explanation_correct": "",
+        "explanation_wrong": "Осторожнее! «Вдвое больше от незнакомца» — почти всегда обман. Дарить деньги незнакомым нельзя. Расскажи о таком взрослым. Попробуй другой путь!"
+      },
+      {
+        "id": "c",
+        "text": "Просто промолчать и уйти, не рассказывать никому",
+        "is_correct": false,
+        "consequence_pet": "neutral",
+        "consequence_balance": 0,
+        "explanation_correct": "",
+        "explanation_wrong": "Уйти — хорошо, но промолчать — плохо. О подозрительных предложениях важно рассказать маме или папе, чтобы они помогли. Давай по-другому!"
+      }
+    ],
+    "reward": 30,
+    "min_age": 7,
+    "max_age": 11,
+    "difficulty": "easy"
+  }
+]

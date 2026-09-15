@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:financial_pet/services/pet_service.dart';
-import 'package:financial_pet/services/piggy_bank_service.dart';
-import 'package:financial_pet/services/wallet_service.dart';
+import 'package:financial_pet/core/services/pet_service.dart';
+import 'package:financial_pet/core/services/piggy_bank_service.dart';
+import 'package:financial_pet/core/services/wallet_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

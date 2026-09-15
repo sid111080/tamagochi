@@ -2,24 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'screens/splash_screen.dart';
-import 'services/pet_service.dart';
-import 'services/piggy_bank_service.dart';
-import 'services/task_service.dart';
-import 'services/wallet_service.dart';
-import 'theme/app_theme.dart';
+import 'app/theme.dart';
+import 'core/models/task.dart';
+import 'core/services/pet_service.dart';
+import 'core/services/piggy_bank_service.dart';
+import 'core/services/task_service.dart';
+import 'core/services/wallet_service.dart';
+import 'data/content/content_repository.dart';
+import 'features/onboarding/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  runApp(App(prefs: prefs));
+  // Учебный контент (задания) грузим один раз при старте:
+  // это слой данных, отделённый от игровой логики (ТЗ §4, §8.14).
+  final tasks = await const ContentRepository().loadTasks();
+  runApp(App(prefs: prefs, tasks: tasks));
 }
 
-/// Корень приложения: предоставляет сервисы и тему.
+/// Корень приложения: предоставляет сервисы, контент и тему.
 class App extends StatelessWidget {
-  const App({super.key, required this.prefs});
+  const App({super.key, required this.prefs, required this.tasks});
 
   final SharedPreferences prefs;
+  final List<Task> tasks;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +41,7 @@ class App extends StatelessWidget {
             prefs,
             ctx.read<WalletService>(),
             ctx.read<PetService>(),
+            tasks,
           ),
         ),
         ChangeNotifierProvider(

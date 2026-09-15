@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../app/theme.dart';
 
 /// Одна полоса статуса питомца (сытость, веселье, чистота).
 class PetStatusBar extends StatelessWidget {

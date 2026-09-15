@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/pet_species.dart';
-import '../services/pet_service.dart';
-import '../theme/app_theme.dart';
-import 'home_screen.dart';
+import '../../core/models/pet_species.dart';
+import '../../core/services/pet_service.dart';
+import '../../app/theme.dart';
+import '../home/home_screen.dart';
 
 /// Экран создания уникального питомца: выбор вида + имя.
 class CreatePetScreen extends StatefulWidget {
