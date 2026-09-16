@@ -67,6 +67,20 @@ class TaskService extends ChangeNotifier {
   /// Источник текущего времени (в тестах подменяется).
   DateTime Function() clock = DateTime.now;
 
+  /// Демо-режим: все задания из контента доступны сразу (ТЗ §8.8, §8.13) —
+  /// без ежедневной ротации и ожидания «завтра».
+  bool _demoAll = false;
+
+  /// Включить/выключить демо-режим набора заданий.
+  void setDemoAll(bool value) {
+    if (_demoAll == value) return;
+    _demoAll = value;
+    notifyListeners();
+  }
+
+  /// Включён ли демо-режим набора (все задания доступны сразу).
+  bool get allTasksAvailable => _demoAll;
+
   // Идентификаторы текущего набора (сегодняшняя ротация).
   List<String> _selectedIds = const [];
   // Ключи периода (день в формате ГГГГ-ММ-ДД).
@@ -88,15 +102,18 @@ class TaskService extends ChangeNotifier {
   List<String> get selectedIds => List.unmodifiable(_selectedIds);
 
   /// Задания, доступные к выполнению прямо сейчас.
+  /// В демо-режиме — все задания из контента.
   List<Task> get availableTasks {
     final now = clock();
-    return _selected.where((t) => _isAvailable(t.id, now)).toList();
+    final pool = _demoAll ? content : _selected;
+    return pool.where((t) => _isAvailable(t.id, now)).toList();
   }
 
-  /// Выполненные в текущем периоде.
+  /// Выполненные в текущем периоде (в демо — за день-сессию).
   List<Task> get completedTasks {
     final now = clock();
-    return _selected.where((t) => !_isAvailable(t.id, now)).toList();
+    final pool = _demoAll ? content : _selected;
+    return pool.where((t) => !_isAvailable(t.id, now)).toList();
   }
 
   int get availableCount => availableTasks.length;
@@ -156,6 +173,9 @@ class TaskService extends ChangeNotifier {
   // --- Выполнение ---
 
   bool _isAvailable(String id, DateTime now) {
+    // В демо-режиме задание закрывается до сброса профиля:
+    // «без ожидания реального времени» — правило «приходи завтра» не применяется.
+    if (_demoAll) return !_completed.containsKey(id);
     final at = _completed[id];
     if (at == null) return true;
     // Выполнено раньше сегодняшнего дня => снова доступно (повторный обзор).

@@ -36,6 +36,10 @@ class PetService extends ChangeNotifier {
   /// без него забота работает как раньше (старые сценарии/тесты).
   SpendReporter? spendReporter;
 
+  /// Демо-режим: без реального времени — периодический спад статусов
+  /// отключён, чтобы питомец не «старел», пока идут этапы.
+  bool demoMode = false;
+
   bool _justLeveledUp = false;
 
   Pet? get pet => _pet;
@@ -69,6 +73,12 @@ class PetService extends ChangeNotifier {
     _save();
   }
 
+  /// Удалить питомца (сброс профиля / выход из демо-режима).
+  void removePet() {
+    _pet = null;
+    _save();
+  }
+
   void _applyOfflineDecay() {
     final p = _pet;
     if (p == null) return;
@@ -81,6 +91,7 @@ class PetService extends ChangeNotifier {
   }
 
   void _tick() {
+    if (demoMode) return; // демо-режим: без реального времени.
     final p = _pet;
     if (p == null) return;
     final since = DateTime.now().difference(p.lastDecayAt);

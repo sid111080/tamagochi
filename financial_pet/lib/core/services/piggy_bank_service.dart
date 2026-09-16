@@ -78,6 +78,12 @@ class PiggyBankService extends ChangeNotifier {
   bool justReached(String goalId) =>
       _goals.where((g) => g.id == goalId).firstOrNull?.isReached ?? false;
 
+  /// Полный сброс копилки: все цели удалены (сброс профиля / демо).
+  void reset() {
+    _goals = [];
+    _save();
+  }
+
   List<PiggyBankGoal> _load() {
     final raw = _prefs.getString(_kPiggyBank);
     if (raw == null) return [];

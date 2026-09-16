@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/theme.dart';
 import 'core/models/task.dart';
+import 'core/services/demo_service.dart';
 import 'core/services/pet_service.dart';
 import 'core/services/period_service.dart';
 import 'core/services/piggy_bank_service.dart';
@@ -67,6 +68,18 @@ class App extends StatelessWidget {
             ctx.read<PiggyBankService>().spendReporter = period;
             return period;
           },
+        ),
+        // Демо-режим (ТЗ §8.13): оркестратор тестового профиля.
+        // Последний в дереве — имеет доступ ко всем сервисам выше.
+        ChangeNotifierProvider(
+          create: (ctx) => DemoService(
+            prefs,
+            ctx.read<WalletService>(),
+            ctx.read<PetService>(),
+            ctx.read<TaskService>(),
+            ctx.read<PiggyBankService>(),
+            ctx.read<PeriodService>(),
+          ),
         ),
       ],
       child: MaterialApp(

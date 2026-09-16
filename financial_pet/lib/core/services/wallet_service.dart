@@ -49,6 +49,15 @@ class WalletService extends ChangeNotifier {
     return ok;
   }
 
+  /// Полный сброс кошелька: баланс к стартовому, история пуста.
+  /// (сброс профиля / демо-режим, ТЗ §8.13)
+  void reset() {
+    _wallet
+      ..balance = startingBalance
+      ..transactions = [];
+    _save();
+  }
+
   void _save() {
     _prefs.setString(_kWallet, jsonEncode(_wallet.toJson()));
     notifyListeners();

@@ -5,12 +5,14 @@ import '../../core/models/growth_stage.dart';
 import '../../core/models/pet.dart';
 import '../../core/models/pet_species.dart';
 import '../../core/models/piggy_bank_goal.dart';
+import '../../core/services/demo_service.dart';
 import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/wallet_service.dart';
 import '../../app/theme.dart';
 import '../../features/budget/budget_tab.dart';
 import '../../features/tasks/tasks_tab.dart';
+import '../pet_creation/create_pet_screen.dart';
 import '../../widgets/action_button.dart';
 import '../../widgets/coin_badge.dart';
 import '../../widgets/earnings_chart.dart';
@@ -31,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final wallet = context.watch<WalletService>();
+    final demo = context.watch<DemoService>();
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -48,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const Spacer(),
+                  if (demo.isDemo) ...[
+                    _DemoChip(onTap: () => _openDemoDialog(context)),
+                    const SizedBox(width: 8),
+                  ],
                   CoinBadge(balance: wallet.balance),
                 ],
               ),
@@ -87,6 +94,118 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Кошелёк',
           ),
         ],
+      ),
+    );
+  }
+
+  /// Диалог управления демо-режимом: заново пройти сценарий / выйти.
+  void _openDemoDialog(BuildContext context) {
+    final demo = context.read<DemoService>();
+    final homeContext = context;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20))),
+        contentPadding: const EdgeInsets.all(20),
+        title: const Text(
+          '🎬 Демо-режим',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink,
+          ),
+        ),
+        content: const Text(
+          'Тестовый профиль: этапы проходятся подряд, без ожидания '
+          'реального времени. Задания — все сразу.',
+          style: TextStyle(
+            fontSize: 13.5,
+            height: 1.4,
+            color: AppColors.inkSoft,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              demo.resetDemo();
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text(
+              'Начать заново',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkSoft,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              demo.exitDemo();
+              Navigator.of(dialogContext).pop();
+              // Профиль очищен (питомец удалён) → на экран создания.
+              if (homeContext.mounted) {
+                Navigator.of(homeContext).pushReplacement(
+                  MaterialPageRoute(
+                      builder: (_) => const CreatePetScreen()),
+                );
+              }
+            },
+            child: const Text(
+              'Выйти',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Плашка «демо-режим» в шапке: видна только в демо.
+class _DemoChip extends StatelessWidget {
+  const _DemoChip({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.accent.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.accent, width: 1),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🎬', style: TextStyle(fontSize: 13)),
+            SizedBox(width: 4),
+            Text(
+              'Демо',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF8A6D00),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

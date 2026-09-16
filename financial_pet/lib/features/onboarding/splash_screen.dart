@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../app/theme.dart';
+import '../../core/services/demo_service.dart';
 import '../pet_creation/create_pet_screen.dart';
 import '../home/home_screen.dart';
 
@@ -26,6 +29,9 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _fade =
       Tween<double>(begin: 0, end: 1).animate(_controller);
 
+  /// Защита от двойной навигации (авто-переход + нажатие на демо-кнопку).
+  bool _navigated = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,12 +41,24 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _navigate() async {
     await Future.delayed(const Duration(milliseconds: 1600));
-    if (!mounted) return;
+    if (!mounted || _navigated) return;
+    _navigated = true;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) =>
             widget.hasPet ? const HomeScreen() : const CreatePetScreen(),
       ),
+    );
+  }
+
+  /// Войти в демо-режим (ТЗ §8.13): чистый тестовый профиль → сразу в Home.
+  void _enterDemo() {
+    if (_navigated) return;
+    _navigated = true;
+    context.read<DemoService>().enterDemo();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
@@ -118,6 +136,22 @@ class _SplashScreenState extends State<SplashScreen>
                     fontWeight: FontWeight.w700,
                     color: AppColors.inkSoft,
                     letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                TextButton.icon(
+                  onPressed: _enterDemo,
+                  icon: const Icon(
+                    Icons.play_circle_outline_rounded,
+                    color: AppColors.inkSoft,
+                  ),
+                  label: const Text(
+                    'Демо-режим',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.inkSoft,
+                    ),
                   ),
                 ),
               ],
