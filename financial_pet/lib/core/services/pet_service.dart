@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/budget.dart';
 import '../models/pet.dart';
 import 'wallet_service.dart';
 
@@ -30,6 +31,10 @@ class PetService extends ChangeNotifier {
   final WalletService _wallet;
   Pet? _pet;
   late final Timer _timer;
+
+  /// Кто получает сведения о тратах (движок периодов). Nullable —
+  /// без него забота работает как раньше (старые сценарии/тесты).
+  SpendReporter? spendReporter;
 
   bool _justLeveledUp = false;
 
@@ -111,6 +116,8 @@ class PetService extends ChangeNotifier {
     final beforeLevel = p.level;
     action(p);
     _justLeveledUp = p.level > beforeLevel;
+    // Забота — обязательные расходы (еда, уход): фиксируем в периоде.
+    spendReporter?.reportSpend(BudgetDirection.required, cost);
     _save();
     return true;
   }
@@ -132,6 +139,20 @@ class PetService extends ChangeNotifier {
     if (p == null || moodDelta == 0) return;
     p.fun = (p.fun + moodDelta).clamp(0, 100);
     p.hunger = (p.hunger + moodDelta * 0.4).clamp(0, 100);
+    p.lastDecayAt = DateTime.now();
+    _save();
+  }
+
+  /// Эмоциональная реакция на завершение периода: [moodDelta] > 0 — доволен,
+  /// < 0 — расстроен. Затрагивает все три статуса (общее настроение дня).
+  /// Обратимо, без страха и стыда (принцип «безопасной ошибки», ТЗ §6):
+  /// плохой период лишь слегка опустит питомца, а не «обнулит» его.
+  void applyPeriodResult(double moodDelta) {
+    final p = _pet;
+    if (p == null || moodDelta == 0) return;
+    p.hunger = (p.hunger + moodDelta).clamp(0, 100);
+    p.fun = (p.fun + moodDelta).clamp(0, 100);
+    p.cleanliness = (p.cleanliness + moodDelta * 0.6).clamp(0, 100);
     p.lastDecayAt = DateTime.now();
     _save();
   }

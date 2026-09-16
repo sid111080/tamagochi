@@ -9,6 +9,7 @@ import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/wallet_service.dart';
 import '../../app/theme.dart';
+import '../../features/budget/budget_tab.dart';
 import '../../features/tasks/tasks_tab.dart';
 import '../../widgets/action_button.dart';
 import '../../widgets/coin_badge.dart';
@@ -16,7 +17,7 @@ import '../../widgets/earnings_chart.dart';
 import '../../widgets/level_indicator.dart';
 import '../../widgets/status_bar.dart';
 
-/// Главный экран: два таба — питомец и задания.
+/// Главный экран: четыре таба — питомец, бюджет, задания, кошелёк.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -54,7 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: IndexedStack(
                 index: _tab,
-                children: const [_PetTab(), TasksTab(), _WalletTab()],
+                children: const [
+                  _PetTab(),
+                  BudgetTab(),
+                  TasksTab(),
+                  _WalletTab(),
+                ],
               ),
             ),
           ],
@@ -67,6 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.pets_rounded),
             label: 'Питомец',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pie_chart_rounded),
+            label: 'Бюджет',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.task_alt_rounded),

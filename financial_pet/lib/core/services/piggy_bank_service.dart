@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/budget.dart';
 import '../models/piggy_bank_goal.dart';
 import 'pet_service.dart';
 import 'wallet_service.dart';
@@ -23,6 +24,10 @@ class PiggyBankService extends ChangeNotifier {
   final SharedPreferences _prefs;
   final WalletService _wallet;
   final PetService _pet;
+
+  /// Кто получает сведения о тратах (движок периодов). Nullable —
+  /// без него копилка работает как раньше.
+  SpendReporter? spendReporter;
 
   late List<PiggyBankGoal> _goals;
 
@@ -59,6 +64,8 @@ class PiggyBankService extends ChangeNotifier {
     }
     final before = goal.isReached;
     goal.saved += toSave;
+    // Пополнение копилки — накопления: фиксируем в периоде.
+    spendReporter?.reportSpend(BudgetDirection.savings, toSave);
     if (!before && goal.isReached) {
       goal.rewarded = true;
       _pet.addXp(goalReachedXp);

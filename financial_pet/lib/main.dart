@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/theme.dart';
 import 'core/models/task.dart';
 import 'core/services/pet_service.dart';
+import 'core/services/period_service.dart';
 import 'core/services/piggy_bank_service.dart';
 import 'core/services/task_service.dart';
 import 'core/services/wallet_service.dart';
@@ -50,6 +51,22 @@ class App extends StatelessWidget {
             ctx.read<WalletService>(),
             ctx.read<PetService>(),
           ),
+        ),
+        // Периоды и план бюджета: движок игровой экономики. Регистрируется
+        // последним, чтобы иметь доступ к кошельку, питомцу и копилке.
+        ChangeNotifierProvider(
+          create: (ctx) {
+            final period = PeriodService(
+              prefs,
+              ctx.read<WalletService>(),
+              ctx.read<PetService>(),
+            );
+            // Тратопредупреждение: забота → «обязательные»,
+            // копилка → «накопления». Реализует SpendReporter.
+            ctx.read<PetService>().spendReporter = period;
+            ctx.read<PiggyBankService>().spendReporter = period;
+            return period;
+          },
         ),
       ],
       child: MaterialApp(
