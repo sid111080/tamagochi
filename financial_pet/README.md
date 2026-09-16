@@ -32,4 +32,6 @@ samples, guidance on mobile development, and a full API reference.
 
 ![Preview](pet1.png)
 ![Preview](pet2.png)
+![Preview](pet3.png)
+![Preview](pet4.png)
 

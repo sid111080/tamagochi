@@ -123,6 +123,18 @@ class TaskService extends ChangeNotifier {
   /// Лучший стрик за всё время (бейджи считаются по нему).
   int get maxStreak => _maxStreak;
 
+  /// Прогресс по каждой теме: (выполнено, всего) по всем заданиям контента.
+  /// Для раздела для взрослого (ТЗ §8.12: «пройденные темы»).
+  Map<TaskTopic, (int, int)> get topicProgress {
+    final progress = <TaskTopic, (int, int)>{};
+    for (final t in content) {
+      final (done, all) = progress[t.topic] ?? (0, 0);
+      progress[t.topic] =
+          (done + (_completed.containsKey(t.id) ? 1 : 0), all + 1);
+    }
+    return progress;
+  }
+
   /// Найти задание по id из сегодняшнего набора.
   Task? taskById(String id) =>
       _selected.where((t) => t.id == id).firstOrNull;
