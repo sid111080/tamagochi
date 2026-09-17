@@ -168,6 +168,24 @@ class PetService extends ChangeNotifier {
     _save();
   }
 
+  /// Применить эффект покупки (ТЗ §8.6): изменить статусы на дельты.
+  /// Возвращает false, если питомец ещё не создан.
+  bool applyPurchaseEffect({
+    double hunger = 0,
+    double fun = 0,
+    double cleanliness = 0,
+  }) {
+    final p = _pet;
+    if (p == null) return false;
+    p.applyEffect(
+      hunger: hunger,
+      fun: fun,
+      cleanliness: cleanliness,
+    );
+    _save();
+    return true;
+  }
+
   /// Начислить опыт за выполнение задания.
   void addXpForTask(int amount) => addXp(amount);
 

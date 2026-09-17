@@ -13,6 +13,7 @@ import '../../app/theme.dart';
 import '../../features/adult/adult_section.dart';
 import '../../features/budget/budget_tab.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/purchases/purchases_tab.dart';
 import '../../features/tasks/tasks_tab.dart';
 import '../pet_creation/create_pet_screen.dart';
 import '../../widgets/action_button.dart';
@@ -97,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: const [
                   _PetTab(),
                   BudgetTab(),
+                  PurchasesTab(),
                   TasksTab(),
                   _WalletTab(),
                 ],
@@ -116,6 +118,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.pie_chart_rounded),
             label: 'Бюджет',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag_rounded),
+            label: 'Покупки',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.task_alt_rounded),

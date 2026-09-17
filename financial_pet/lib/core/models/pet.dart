@@ -85,6 +85,21 @@ class Pet {
   void play() => _applyStatus(fun: 40, xp: 5);
   void wash() => _applyStatus(cleanliness: 50, xp: 5);
 
+  /// Применить эффект (например, покупки): изменить статусы на дельты.
+  /// Опыт НЕ начисляет — покупки не «прокачивают» питомца.
+  void applyEffect({
+    double hunger = 0,
+    double fun = 0,
+    double cleanliness = 0,
+  }) {
+    if (hunger != 0) this.hunger = (this.hunger + hunger).clamp(0, 100);
+    if (fun != 0) this.fun = (this.fun + fun).clamp(0, 100);
+    if (cleanliness != 0) {
+      this.cleanliness = (this.cleanliness + cleanliness).clamp(0, 100);
+    }
+    lastDecayAt = DateTime.now();
+  }
+
   /// Начислить опыт за выполнение задания.
   void addXp(int amount) {
     totalXp += amount;

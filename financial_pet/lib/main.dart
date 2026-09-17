@@ -8,6 +8,7 @@ import 'core/services/demo_service.dart';
 import 'core/services/pet_service.dart';
 import 'core/services/period_service.dart';
 import 'core/services/piggy_bank_service.dart';
+import 'core/services/purchase_service.dart';
 import 'core/services/task_service.dart';
 import 'core/services/wallet_service.dart';
 import 'data/content/content_repository.dart';
@@ -53,6 +54,13 @@ class App extends StatelessWidget {
             ctx.read<PetService>(),
           ),
         ),
+        // Магазин: каталог товаров и покупка (ТЗ §8.6).
+        ChangeNotifierProvider(
+          create: (ctx) => PurchaseService(
+            ctx.read<WalletService>(),
+            ctx.read<PetService>(),
+          ),
+        ),
         // Периоды и план бюджета: движок игровой экономики. Регистрируется
         // последним, чтобы иметь доступ к кошельку, питомцу и копилке.
         ChangeNotifierProvider(
@@ -63,9 +71,10 @@ class App extends StatelessWidget {
               ctx.read<PetService>(),
             );
             // Тратопредупреждение: забота → «обязательные»,
-            // копилка → «накопления». Реализует SpendReporter.
+            // копилка → «накопления», покупки → по категории.
             ctx.read<PetService>().spendReporter = period;
             ctx.read<PiggyBankService>().spendReporter = period;
+            ctx.read<PurchaseService>().spendReporter = period;
             return period;
           },
         ),
