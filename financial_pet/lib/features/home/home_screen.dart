@@ -10,6 +10,7 @@ import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/wallet_service.dart';
 import '../../app/theme.dart';
+import '../../features/adult/adult_section.dart';
 import '../../features/budget/budget_tab.dart';
 import '../../features/tasks/tasks_tab.dart';
 import '../pet_creation/create_pet_screen.dart';
@@ -56,6 +57,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                   ],
                   CoinBadge(balance: wallet.balance),
+                  const SizedBox(width: 8),
+                  // Раздел для взрослого (ТЗ §8.12): деликатная иконка,
+                  // раздел закрыт барьером (арифметический пример).
+                  IconButton(
+                    tooltip: 'Для взрослых',
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const AdultSection()),
+                    ),
+                    icon: const Icon(
+                      Icons.supervised_user_circle_rounded,
+                      color: AppColors.inkSoft,
+                    ),
+                  ),
                 ],
               ),
             ),
