@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../core/services/demo_service.dart';
-import '../pet_creation/create_pet_screen.dart';
 import '../home/home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 /// Стартовый экран с логотипом и навигацией.
 class SplashScreen extends StatefulWidget {
@@ -43,10 +43,12 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 1600));
     if (!mounted || _navigated) return;
     _navigated = true;
+    // Есть питомец → сразу в Home. Нет → вводный онбординг (ТЗ §8.1),
+    // после которого — экран создания питомца.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) =>
-            widget.hasPet ? const HomeScreen() : const CreatePetScreen(),
+            widget.hasPet ? const HomeScreen() : const OnboardingScreen(),
       ),
     );
   }

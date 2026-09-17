@@ -12,6 +12,7 @@ import '../../core/services/wallet_service.dart';
 import '../../app/theme.dart';
 import '../../features/adult/adult_section.dart';
 import '../../features/budget/budget_tab.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/tasks/tasks_tab.dart';
 import '../pet_creation/create_pet_screen.dart';
 import '../../widgets/action_button.dart';
@@ -58,6 +59,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   CoinBadge(balance: wallet.balance),
                   const SizedBox(width: 8),
+                  // Подсказка (ТЗ §8.1): вернуться к знакомству с игрой
+                  // в любой момент. Открывается поверх Home → по завершении
+                  // возвращаемся назад.
+                  IconButton(
+                    tooltip: 'Как играть?',
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const OnboardingScreen(fromHint: true),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: AppColors.inkSoft,
+                    ),
+                  ),
                   // Раздел для взрослого (ТЗ §8.12): деликатная иконка,
                   // раздел закрыт барьером (арифметический пример).
                   IconButton(
