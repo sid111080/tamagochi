@@ -178,15 +178,36 @@ void main() {
     expect(tasks.completedTasks.map((x) => x.id), contains(t.id));
   });
 
-  test('resetProgress: очищает выполнения и стрик', () {
+  test('completedHistory: новые выполнения первыми, count растёт', () {
+    final available = tasks.availableTasks;
+    expect(available, hasLength(greaterThanOrEqualTo(2)));
+
+    tasks.answer(available.first.id, 'a');
+    expect(tasks.completedCount, 1);
+    expect(tasks.completedHistory, hasLength(1));
+    expect(tasks.completedHistory.first.$1.id, available.first.id);
+
+    // Второе выполнение позже по времени → становится первым в истории.
+    now = now.add(const Duration(hours: 1));
+    final second = available[1];
+    tasks.answer(second.id, 'a');
+    expect(tasks.completedCount, 2);
+    expect(tasks.completedHistory, hasLength(2));
+    expect(tasks.completedHistory.first.$1.id, second.id);
+  });
+
+  test('resetProgress: очищает выполнения, стрик и историю', () {
     tasks.answer(tasks.availableTasks.first.id, 'a');
     expect(tasks.completedTasks, isNotEmpty);
     expect(tasks.streak, 1);
+    expect(tasks.completedCount, greaterThanOrEqualTo(1));
 
     tasks.resetProgress();
     expect(tasks.streak, 0);
     expect(tasks.maxStreak, 0);
     expect(tasks.completedTasks, isEmpty);
+    expect(tasks.completedCount, 0);
+    expect(tasks.completedHistory, isEmpty);
     expect(tasks.availableCount, 3);
   });
 

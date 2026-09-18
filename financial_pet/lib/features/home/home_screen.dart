@@ -16,6 +16,7 @@ import '../../features/adult/adult_section.dart';
 import '../../features/budget/budget_tab.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/purchases/purchases_tab.dart';
+import '../../features/progress/history_tab.dart';
 import '../../features/tasks/tasks_tab.dart';
 import '../pet_creation/create_pet_screen.dart';
 import '../../widgets/action_button.dart';
@@ -133,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   PurchasesTab(),
                   TasksTab(),
                   _WalletTab(),
+                  HistoryTab(),
                 ],
               ),
             ),
@@ -162,6 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_rounded),
             label: 'Кошелёк',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_rounded),
+            label: 'История',
           ),
         ],
       ),

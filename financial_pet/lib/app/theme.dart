@@ -69,12 +69,20 @@ class AppTheme {
               const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
       ),
+      // Лейблы зафиксированы в 12px для обоих состояний: в M3 выбранная
+      // вкладка по умолчанию растёт до 14px и на узком экране (6 вкладок,
+      // 360 dp) мог бы не влезти длинный лейбл («Кошелёк»). Фиксированный
+      // размер убирает этот риск (ТЗ §10, мин. ширина 360 dp).
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.inkSoft,
         type: BottomNavigationBarType.fixed,
         elevation: 12,
+        selectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
       ),
       progressIndicatorTheme:
           ProgressIndicatorThemeData(color: AppColors.primary),

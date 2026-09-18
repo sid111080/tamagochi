@@ -118,6 +118,27 @@ class TaskService extends ChangeNotifier {
 
   int get availableCount => availableTasks.length;
 
+  /// Сколько заданий выполнено за всё время (сдано в хранилище).
+  /// Для «Истории» (ТЗ §8.11): «видны завершённые задания».
+  int get completedCount => _completed.length;
+
+  /// Все выполненные задания (с датой выполнения), новые первыми.
+  /// Это *полная* история, а не только сегодняшний набор: берётся из
+  /// сохранённой карты `_completed` и резолвится в задания контента.
+  /// (ТЗ §8.11: «видны завершённые задания».)
+  List<(Task, DateTime)> get completedHistory {
+    final entries = _completed.entries.toList()
+      ..sort((a, b) => DateTime.parse(b.value).compareTo(DateTime.parse(a.value)));
+    final result = <(Task, DateTime)>[];
+    for (final e in entries) {
+      final task = _contentIndex[e.key];
+      if (task != null) {
+        result.add((task, DateTime.parse(e.value)));
+      }
+    }
+    return result;
+  }
+
   int get streak => _streak;
 
   /// Лучший стрик за всё время (бейджи считаются по нему).
