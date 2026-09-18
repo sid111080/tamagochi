@@ -98,7 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             // Постоянная строка-сводка (ТЗ §8.3): копилка, текущая цель
-            // и активное задание видны на всех табах, без перехода по меню.
+            // и активное задание видны на всех табах. Сегменты кликабельны
+            // (ведут в соответствующую вкладку), строка прокручивается
+            // горизонтально — на узком экране ничего не обрезается.
             Consumer2<PiggyBankService, TaskService>(
               builder: (context, piggy, tasks, _) {
                 final goal = piggy.goals.firstOrNull;
@@ -112,24 +114,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? '📝 Задание: всё выполнено'
                     : '📝 Задание: «${task.title}»';
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: _summaryText('🏦 Копилка: ${piggy.totalSaved}'),
-                      ),
-                      const _SummarySeparator(),
-                      Flexible(child: _summaryText(goalText)),
-                      const _SummarySeparator(),
-                      // На узком экране длинные названия уходят в многоточие,
-                      // а не ломают строку.
-                      Flexible(
-                        child: _summaryText(
-                          taskText,
-                          overflow: TextOverflow.ellipsis,
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    height: 48,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        // Копилка и цель живут во вкладке «Кошелёк» (индекс 4).
+                        _SummaryChip(
+                          text: '🏦 Копилка: ${piggy.totalSaved}',
+                          onTap: () => _openTab(4),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        _SummaryChip(text: goalText, onTap: () => _openTab(4)),
+                        const SizedBox(width: 8),
+                        // Активное задание — во вкладку «Задания» (индекс 3).
+                        _SummaryChip(
+                            text: taskText, onTap: () => _openTab(3)),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -210,6 +214,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  /// Переключить вкладку по номеру индекса (из строки-сводки, ТЗ §8.3).
+  void _openTab(int index) {
+    if (index == _tab) return;
+    setState(() => _tab = index);
   }
 
   /// Диалог управления демо-режимом: заново пройти сценарий / выйти.
@@ -328,35 +338,39 @@ class _DemoChip extends StatelessWidget {
   }
 }
 
-/// Разделитель «·» в строке-сводке (ТЗ §8.3).
-class _SummarySeparator extends StatelessWidget {
-  const _SummarySeparator();
+/// Кликабельный сегмент строки-сводки (ТЗ §8.3): ведёт в нужную вкладку.
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({required this.text, required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 5),
-        child: Text(
-          '·',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: AppColors.inkSoft,
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      elevation: 2,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Padding(
+          // Высота ~48 dp — доступная зона тапа (ТЗ §10).
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
           ),
         ),
-      );
-}
-
-/// Сегмент строки-сводки (копилка / цель / задание).
-Widget _summaryText(String text, {TextOverflow? overflow}) => Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.inkSoft,
       ),
-      maxLines: 1,
-      overflow: overflow,
     );
+  }
+}
 
 /// Таб «Питомец»: аватар, настроение, уровень, статусы, забота.
 class _PetTab extends StatelessWidget {
