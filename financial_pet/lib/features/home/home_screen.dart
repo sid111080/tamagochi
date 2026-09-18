@@ -10,6 +10,7 @@ import '../../core/services/demo_service.dart';
 import '../../core/services/feedback_service.dart';
 import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
+import '../../core/services/task_service.dart';
 import '../../core/services/wallet_service.dart';
 import '../../app/theme.dart';
 import '../../features/adult/adult_section.dart';
@@ -95,6 +96,43 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+            ),
+            // Постоянная строка-сводка (ТЗ §8.3): копилка, текущая цель
+            // и активное задание видны на всех табах, без перехода по меню.
+            Consumer2<PiggyBankService, TaskService>(
+              builder: (context, piggy, tasks, _) {
+                final goal = piggy.goals.firstOrNull;
+                final task = tasks.availableTasks.firstOrNull;
+                final goalText = goal == null
+                    ? '🎯 Цель: не выбрана'
+                    : '🎯 ${goal.title}: '
+                        '${(goal.target - goal.saved).clamp(0, 999999)} '
+                        'осталось';
+                final taskText = task == null
+                    ? '📝 Задание: всё выполнено'
+                    : '📝 Задание: «${task.title}»';
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: _summaryText('🏦 Копилка: ${piggy.totalSaved}'),
+                      ),
+                      const _SummarySeparator(),
+                      Flexible(child: _summaryText(goalText)),
+                      const _SummarySeparator(),
+                      // На узком экране длинные названия уходят в многоточие,
+                      // а не ломают строку.
+                      Flexible(
+                        child: _summaryText(
+                          taskText,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
             // Карточка обратной связи (ТЗ §8.9): баннер между шапкой и
             // табами — обычный поток: не перекрывает контент и безопасно
@@ -289,6 +327,36 @@ class _DemoChip extends StatelessWidget {
     );
   }
 }
+
+/// Разделитель «·» в строке-сводке (ТЗ §8.3).
+class _SummarySeparator extends StatelessWidget {
+  const _SummarySeparator();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 5),
+        child: Text(
+          '·',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: AppColors.inkSoft,
+          ),
+        ),
+      );
+}
+
+/// Сегмент строки-сводки (копилка / цель / задание).
+Widget _summaryText(String text, {TextOverflow? overflow}) => Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: AppColors.inkSoft,
+      ),
+      maxLines: 1,
+      overflow: overflow,
+    );
 
 /// Таб «Питомец»: аватар, настроение, уровень, статусы, забота.
 class _PetTab extends StatelessWidget {
