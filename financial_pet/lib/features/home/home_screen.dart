@@ -106,14 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, piggy, tasks, _) {
                 final goal = piggy.goals.firstOrNull;
                 final task = tasks.availableTasks.firstOrNull;
+                // Компактные чипы (иконка + суть), чтобы влезть по ширине.
                 final goalText = goal == null
-                    ? '🎯 Цель: не выбрана'
-                    : '🎯 ${goal.title}: '
-                        '${(goal.target - goal.saved).clamp(0, 999999)} '
-                        'осталось';
-                final taskText = task == null
-                    ? '📝 Задание: всё выполнено'
-                    : '📝 Задание: «${task.title}»';
+                    ? '🎯 —'
+                    : '${goal.emoji} ${goal.title}';
+                final taskText = task == null ? '📝 ✓' : '📝 ${task.title}';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: SizedBox(
@@ -124,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         // Копилка и цель живут во вкладке «Кошелёк» (индекс 4).
                         _SummaryChip(
-                          text: '🏦 Копилка: ${piggy.totalSaved}',
+                          text: '🏦 ${piggy.totalSaved}',
                           onTap: () => _openTab(4),
                         ),
                         const SizedBox(width: 8),
@@ -1232,6 +1229,13 @@ class _AddGoalDialogState extends State<_AddGoalDialog> {
   final _controller = TextEditingController();
   String _emoji = _AddGoalDialogState._emojis.first;
   int _target = 100;
+
+  @override
+  void initState() {
+    super.initState();
+    // Пересчитываем состояние (кнопка «Создать») при вводе названия.
+    _controller.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {

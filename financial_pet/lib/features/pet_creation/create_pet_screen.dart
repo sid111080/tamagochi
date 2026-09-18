@@ -24,6 +24,8 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
     _selected = PetSpecies.all.first;
     _nameController =
         TextEditingController(text: _selected.defaultName);
+    // Перерисовываем превью имени при вводе.
+    _nameController.addListener(() => setState(() {}));
   }
 
   void _pick(PetSpecies s) {
