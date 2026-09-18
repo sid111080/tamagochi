@@ -67,6 +67,7 @@ class _BudgetTabState extends State<BudgetTab> {
           index: period.index,
           phase: period.phase,
           stage: periodService.stage,
+          season: periodService.season,
         ),
         const SizedBox(height: 16),
         switch (period.phase) {
@@ -114,11 +115,13 @@ class _PeriodHeader extends StatelessWidget {
     required this.index,
     required this.phase,
     required this.stage,
+    required this.season,
   });
 
   final int index;
   final PeriodPhase phase;
   final FinancialStage stage;
+  final int season;
 
   String get _phaseLabel => switch (phase) {
         PeriodPhase.planning => 'Составь план',
@@ -165,7 +168,7 @@ class _PeriodHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _phaseLabel,
+                  '$_phaseLabel · сезон $season',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,

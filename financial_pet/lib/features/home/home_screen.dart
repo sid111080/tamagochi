@@ -459,6 +459,7 @@ class _PetTab extends StatelessWidget {
           stage: periods.stage,
           points: periods.points,
           periodIndex: periods.period.index,
+          season: periods.season,
         ),
         const SizedBox(height: 12),
         // Статусы.
@@ -642,6 +643,11 @@ SnackBar _snack(String message) => SnackBar(
       duration: const Duration(seconds: 2),
     );
 
+/// Время операции в истории кошелька: «09.18 14:05».
+String _fmtOperationAt(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')} '
+    '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
 /// Пустое состояние, если питомец не создан.
 class _NoPet extends StatelessWidget {
   const _NoPet();
@@ -751,6 +757,77 @@ class _WalletTab extends StatelessWidget {
               hasIncomes
                   ? EarningsChart(incomes: incomes)
                   : const EmptyChartHint(),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // История операций (ТЗ §8.11): откуда появились и куда ушли монетки.
+        // Каждая операция объяснена строкой — баланс не меняется молча.
+        _card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Последние операции',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (wallet.transactions.isEmpty)
+                const Text(
+                  'Пока пусто: выполни задание или покорми питомца.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: AppColors.inkSoft,
+                  ),
+                )
+              else
+                ...wallet.transactions.take(6).map(
+                  (t) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Text(t.emoji,
+                            style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            t.reason,
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ink,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _fmtOperationAt(t.at),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.inkSoft,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${t.amount > 0 ? '+' : ''}${t.amount}',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: t.amount > 0
+                                ? const Color(0xFF3E8E4E)
+                                : AppColors.primaryDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

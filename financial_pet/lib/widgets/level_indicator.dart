@@ -18,6 +18,7 @@ class LevelIndicator extends StatelessWidget {
     this.stage,
     this.points,
     this.periodIndex,
+    this.season,
   });
 
   final Pet pet;
@@ -31,6 +32,9 @@ class LevelIndicator extends StatelessWidget {
 
   /// Номер текущего периода (для «Период X/Y»).
   final int? periodIndex;
+
+  /// Номер сезона (цикл из 5 периодов), если известен.
+  final int? season;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +80,9 @@ class LevelIndicator extends StatelessWidget {
               const Spacer(),
               if (periodIndex != null)
                 Text(
-                  'Период $periodIndex/$periodsPerSeason',
+                  season != null
+                      ? 'Сезон $season · период $periodIndex/$periodsPerSeason'
+                      : 'Период $periodIndex/$periodsPerSeason',
                   style: const TextStyle(
                     color: AppColors.inkSoft,
                     fontWeight: FontWeight.w700,

@@ -38,6 +38,9 @@ class PeriodService extends ChangeNotifier implements SpendReporter {
   /// Сколько периодов завершено в текущем сезоне.
   int _completed = 0;
 
+  /// Номер сезона (цикл из [periodsPerSeason] периодов).
+  int _season = 1;
+
   /// Итог последнего завершённого периода (показываем в UI).
   PeriodResult? _lastResult;
 
@@ -54,6 +57,9 @@ class PeriodService extends ChangeNotifier implements SpendReporter {
 
   /// Итог последнего периода (null, если ещё не завершён ни одного).
   PeriodResult? get lastResult => _lastResult;
+
+  /// Номер текущего сезона (1..N): растёт после каждого 5-го периода.
+  int get season => _season;
 
   bool get isPlanning => _period.phase == PeriodPhase.planning;
   bool get isActive => _period.phase == PeriodPhase.active;
@@ -220,15 +226,17 @@ class PeriodService extends ChangeNotifier implements SpendReporter {
   }
 
   /// Открыть следующий период (цикл 1..5) в фазе планирования.
-  /// Номер берём из завершённого [_period]: 5 → 1, иначе +1.
+  /// Номер берём из завершённого [_period]: 5 → 1 (новый сезон), иначе +1.
   void _openNextPeriod() {
     _seasonPeriod = (_period.index % periodsPerSeason) + 1;
+    if (_seasonPeriod == 1) _season++;
     _period = Period(index: _seasonPeriod, budget: _wallet.balance);
   }
 
   /// Сброс экономики периодов (демо-режим / сброс профиля).
   void reset() {
     _seasonPeriod = 1;
+    _season = 1;
     _points = 0;
     _completed = 0;
     _lastResult = null;
@@ -250,6 +258,7 @@ class PeriodService extends ChangeNotifier implements SpendReporter {
       _seasonPeriod =
           ((json['seasonPeriod'] as num? ?? 1).clamp(1, periodsPerSeason))
               .toInt();
+      _season = ((json['season'] as num? ?? 1).clamp(1, 9999)).toInt();
       _points = (json['points'] as num? ?? 0).toInt();
       _completed = (json['completed'] as num? ?? 0).toInt();
       _lastResult = (json['lastResult'] as Map?) == null
@@ -266,6 +275,7 @@ class PeriodService extends ChangeNotifier implements SpendReporter {
   void _save() {
     final json = <String, dynamic>{
       'seasonPeriod': _seasonPeriod,
+      'season': _season,
       'points': _points,
       'completed': _completed,
       'lastResult': _lastResult?.toJson(),

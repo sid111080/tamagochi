@@ -227,6 +227,21 @@ void main() {
       expect(periodService.isPlanning, isTrue);
     });
 
+    test('номер сезона растёт после 5-го периода, сброс — к 1', () {
+      expect(periodService.season, 1);
+      for (var i = 0; i < 5; i++) {
+        periodService
+          ..confirmPlan(required: 1)
+          ..finishPeriod()
+          ..nextPeriod();
+      }
+      // 5 периодов завершены → цикл 1..5 пройден, открыт сезон 2.
+      expect(periodService.season, 2);
+      expect(periodService.period.index, 1);
+      periodService.reset();
+      expect(periodService.season, 1);
+    });
+
     test('nextPeriod вне фазы finished ничего не делает', () {
       expect(periodService.period.index, 1);
       periodService.nextPeriod(); // ещё на планировании.
