@@ -9,6 +9,7 @@ import '../../core/models/piggy_bank_goal.dart';
 import '../../core/services/demo_service.dart';
 import '../../core/services/feedback_service.dart';
 import '../../core/services/pet_service.dart';
+import '../../core/services/period_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/task_service.dart';
 import '../../core/services/wallet_service.dart';
@@ -372,7 +373,7 @@ class _SummaryChip extends StatelessWidget {
   }
 }
 
-/// Таб «Питомец»: аватар, настроение, уровень, статусы, забота.
+/// Таб «Питомец»: аватар, настроение, уровень, стадия, статусы, забота.
 class _PetTab extends StatelessWidget {
   const _PetTab();
 
@@ -380,6 +381,7 @@ class _PetTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final petService = context.watch<PetService>();
     final wallet = context.watch<WalletService>();
+    final periods = context.watch<PeriodService>();
     final pet = petService.pet;
 
     if (pet == null) return const _NoPet();
@@ -389,7 +391,8 @@ class _PetTab extends StatelessWidget {
     final scale = pet.stage.sizeScale;
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      // Компактная компоновка (ТЗ §8.3): всё главное — без скролла.
+      padding: const EdgeInsets.all(16),
       children: [
         // Аватар + имя + настроение.
         Center(
@@ -398,36 +401,36 @@ class _PetTab extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 400),
                 curve: Curves.easeOutBack,
-                width: 130 * scale,
-                height: 130 * scale,
+                width: 96 * scale,
+                height: 96 * scale,
                 decoration: BoxDecoration(
                   color: species.color.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: species.color.withValues(alpha: 0.35),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
                 child: Center(
                   child: Text(
                     emoji,
-                    style: TextStyle(fontSize: 64 * scale),
+                    style: TextStyle(fontSize: 48 * scale),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               Text(
                 pet.name,
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: AppColors.ink,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -447,12 +450,20 @@ class _PetTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        LevelIndicator(pet: pet, species: species),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        // Уровень + стадия финансовой ответственности (ТЗ §8.10) одной
+        // карточкой: видна на главном экране, растёт по итогам периодов.
+        LevelIndicator(
+          pet: pet,
+          species: species,
+          stage: periods.stage,
+          points: periods.points,
+          periodIndex: periods.period.index,
+        ),
+        const SizedBox(height: 12),
         // Статусы.
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -471,20 +482,23 @@ class _PetTab extends StatelessWidget {
                 emoji: '🍎',
                 value: pet.hunger,
                 color: AppColors.leaf,
+                barHeight: 8,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               PetStatusBar(
                 label: 'Веселье',
                 emoji: '🎾',
                 value: pet.fun,
                 color: AppColors.secondary,
+                barHeight: 8,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               PetStatusBar(
                 label: 'Чистота',
                 emoji: '🫧',
                 value: pet.cleanliness,
                 color: AppColors.sky,
+                barHeight: 8,
               ),
             ],
           ),

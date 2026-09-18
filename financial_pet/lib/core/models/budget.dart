@@ -62,6 +62,18 @@ extension FinancialStageX on FinancialStage {
         _ => FinancialStage.beginner,
       };
 
+  /// Прогресс внутри текущей стадии, 0..1 (для шкалы в UI).
+  /// Пороги: «Уверенный» с 5, «Мастер» с 10 очков; у мастера шкала полная.
+  double progressToNextStage(int points) {
+    final (lo, hi) = switch (this) {
+      FinancialStage.beginner => (0, 5),
+      FinancialStage.confident => (5, 10),
+      FinancialStage.master => (10, 10),
+    };
+    if (hi <= lo) return 1.0;
+    return ((points - lo) / (hi - lo)).clamp(0.0, 1.0);
+  }
+
   static FinancialStage parse(String? name) =>
       FinancialStage.values.firstWhere((s) => s.name == name,
           orElse: () => FinancialStage.beginner);

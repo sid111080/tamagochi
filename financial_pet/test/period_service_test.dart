@@ -174,6 +174,17 @@ void main() {
       expect(FinancialStageX.fromPoints(10), FinancialStage.master);
     });
 
+    test('прогресс внутри стадии: шкала 0..1 по порогам (для UI)', () {
+      expect(FinancialStage.beginner.progressToNextStage(0), 0.0);
+      expect(FinancialStage.beginner.progressToNextStage(2), closeTo(0.4, 0.001));
+      expect(FinancialStage.beginner.progressToNextStage(4), closeTo(0.8, 0.001));
+      expect(FinancialStage.confident.progressToNextStage(5), 0.0);
+      expect(FinancialStage.confident.progressToNextStage(8), closeTo(0.6, 0.001));
+      // У мастера шкала заполнена.
+      expect(FinancialStage.master.progressToNextStage(10), 1.0);
+      expect(FinancialStage.master.progressToNextStage(20), 1.0);
+    });
+
     test('два идеальных периода подводят к confident (6 очков)', () {
       for (var i = 0; i < 2; i++) {
         periodService

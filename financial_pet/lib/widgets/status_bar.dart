@@ -9,12 +9,16 @@ class PetStatusBar extends StatelessWidget {
     required this.emoji,
     required this.value,
     required this.color,
+    this.barHeight = 12,
   });
 
   final String label;
   final String emoji;
   final double value; // 0..100
   final Color color;
+
+  /// Высота полосы: на главном экране — поменьше, чтобы всё влезло.
+  final double barHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +55,7 @@ class PetStatusBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
             value: (value / 100).clamp(0, 1),
-            minHeight: 12,
+            minHeight: barHeight,
             backgroundColor: color.withValues(alpha: 0.18),
             valueColor: AlwaysStoppedAnimation(
                 isLow ? AppColors.primary : color),
