@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/theme.dart';
 import 'core/models/task.dart';
 import 'core/services/demo_service.dart';
+import 'core/services/feedback_service.dart';
 import 'core/services/pet_service.dart';
 import 'core/services/period_service.dart';
 import 'core/services/piggy_bank_service.dart';
@@ -61,6 +62,9 @@ class App extends StatelessWidget {
             ctx.read<PetService>(),
           ),
         ),
+        // Обратная связь (ТЗ §8.9): независимый сервис — держит текущее
+        // событие и историю, данные ему передаёт UI после каждого действия.
+        ChangeNotifierProvider(create: (_) => FeedbackService()),
         // Периоды и план бюджета: движок игровой экономики. Регистрируется
         // последним, чтобы иметь доступ к кошельку, питомцу и копилке.
         ChangeNotifierProvider(

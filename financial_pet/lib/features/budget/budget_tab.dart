@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../core/models/budget.dart';
+import '../../core/models/feedback_event.dart';
 import '../../core/models/pet.dart';
+import '../../core/services/feedback_service.dart';
 import '../../core/services/pet_service.dart';
 import '../../core/services/period_service.dart';
 
@@ -473,7 +475,24 @@ class _ActiveView extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => periodService.finishPeriod(),
+              onPressed: () {
+                periodService.finishPeriod();
+                // Новый период открыт: объясняем следующий шаг (ТЗ §8.9).
+                final pet = context.read<PetService>().pet;
+                context.read<FeedbackService>().post(
+                  FeedbackEvent(
+                    tone: FeedbackTone.info,
+                    emoji: '🏁',
+                    title: 'Период завершён',
+                    message:
+                        'Открылся новый период. План не составлен — '
+                        'распредели монетки по трём направлениям.',
+                    petMood: pet?.mood,
+                    petName: pet?.name,
+                    nextStep: 'Вкладка «Бюджет»: слайдеры плана.',
+                  ),
+                );
+              },
               icon: const Icon(Icons.flag_rounded),
               label: const Text('Завершить период'),
             ),

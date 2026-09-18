@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
+import '../../core/models/feedback_event.dart';
 import '../../core/models/purchase.dart';
+import '../../core/services/feedback_service.dart';
+import '../../core/services/pet_service.dart';
 import '../../core/services/purchase_service.dart';
 import '../../core/services/wallet_service.dart';
 
@@ -188,18 +191,34 @@ class PurchasesTab extends StatelessWidget {
                 ? () {
                     final result = service.buy(product.id);
                     Navigator.of(dialogContext).pop();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${result.emoji ?? ''} ${result.message}'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: AppColors.ink,
-                            duration: const Duration(milliseconds: 2600),
-                          ),
-                        );
+                    if (!context.mounted) return;
+                    // Карточка обратной связи (ТЗ §8.9): что купили,
+                    // сколько ушло, как питомец это «заметил».
+                    final feedback = context.read<FeedbackService>();
+                    final pet = context.read<PetService>().pet;
+                    if (result.success) {
+                      feedback.post(FeedbackEvent.purchaseSuccess(
+                        productEmoji: product.emoji,
+                        productName: product.name,
+                        effect: product.effectLabel,
+                        price: product.price,
+                        petMood: pet?.mood,
+                        petName: pet?.name,
+                        nextStep: product.category == PurchaseCategory.optional
+                            ? 'Это была необязательная трата. '
+                              'Загляни в бюджет: всё по плану?'
+                            : 'Обязательный расход учтён. Дальше — '
+                              'забота или копилка.',
+                      ));
+                    } else {
+                      final balance = context.read<WalletService>().balance;
+                      feedback.post(FeedbackEvent.purchaseInsufficient(
+                        productName: product.name,
+                        productEmoji: product.emoji,
+                        shortfall: (product.price - balance).clamp(0, 999999),
+                        petMood: pet?.mood,
+                        petName: pet?.name,
+                      ));
                     }
                   }
                 : null,
@@ -288,7 +307,10 @@ class _Section extends StatelessWidget {
               crossAxisCount: cols,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.3,
+              // Фиксированная высота ячейки: контент карточки (эмодзи,
+              // название, цена, влияние) гарантированно помещается даже
+              // при минимальной ширине 360 dp (ТЗ §10).
+              mainAxisExtent: 160,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: [

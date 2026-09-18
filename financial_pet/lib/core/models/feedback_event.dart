@@ -195,7 +195,7 @@ class FeedbackEvent {
     required int target,
     Mood? petMood,
     String? petName,
-    bool reached,
+    required bool reached,
   }) {
     if (reached) {
       return FeedbackEvent(

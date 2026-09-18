@@ -7,6 +7,7 @@ import '../../core/models/pet.dart';
 import '../../core/models/pet_species.dart';
 import '../../core/models/task.dart';
 import '../../core/services/demo_service.dart';
+import '../../core/services/feedback_service.dart';
 import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/period_service.dart';
@@ -530,6 +531,8 @@ class _AdultContent extends StatelessWidget {
       }
     }
     if (context.mounted) {
+      // Профиль пересоздан — старые карточки обратной связи сбрасываем.
+      context.read<FeedbackService>().clear();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -574,6 +577,8 @@ class _AdultContent extends StatelessWidget {
       petService.removePet();
     }
     if (context.mounted) {
+      // Профиль удалён — старые карточки обратной связи сбрасываем.
+      context.read<FeedbackService>().clear();
       // Чистая стек-навигация: только экран создания питомца.
       // pushAndRemoveUntil — современная замена popAndPushUntil (убран из SDK).
       Navigator.of(context).pushAndRemoveUntil(

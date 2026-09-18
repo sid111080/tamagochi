@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/feedback_event.dart';
 import '../../core/models/growth_stage.dart';
 import '../../core/models/pet.dart';
 import '../../core/models/pet_species.dart';
 import '../../core/models/piggy_bank_goal.dart';
 import '../../core/services/demo_service.dart';
+import '../../core/services/feedback_service.dart';
 import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/wallet_service.dart';
@@ -19,6 +21,7 @@ import '../pet_creation/create_pet_screen.dart';
 import '../../widgets/action_button.dart';
 import '../../widgets/coin_badge.dart';
 import '../../widgets/earnings_chart.dart';
+import '../../widgets/feedback_card.dart';
 import '../../widgets/level_indicator.dart';
 import '../../widgets/status_bar.dart';
 
@@ -91,6 +94,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+            ),
+            // Карточка обратной связи (ТЗ §8.9): баннер между шапкой и
+            // табами — обычный поток: не перекрывает контент и безопасно
+            // для маленьких экранов. Автоскрывается через несколько секунд.
+            Consumer<FeedbackService>(
+              builder: (context, feedback, _) {
+                final event = feedback.current;
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  reverseDuration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) => SizeTransition(
+                    sizeFactor: animation,
+                    alignment: const Alignment(0, 1),
+                    child:
+                        FadeTransition(opacity: animation, child: child),
+                  ),
+                  child: event == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          child: FeedbackCard(
+                            key: ValueKey(event),
+                            event: event,
+                            onDismiss: feedback.dismiss,
+                          ),
+                        ),
+                );
+              },
             ),
             Expanded(
               child: IndexedStack(
@@ -168,6 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             onPressed: () {
               demo.resetDemo();
+              // Профиль пересоздан — устаревшие карточки сбрасываем.
+              context.read<FeedbackService>().clear();
               Navigator.of(dialogContext).pop();
             },
             child: const Text(
@@ -191,6 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onPressed: () {
               demo.exitDemo();
+              context.read<FeedbackService>().clear();
               Navigator.of(dialogContext).pop();
               // Профиль очищен (питомец удалён) → на экран создания.
               if (homeContext.mounted) {
@@ -367,7 +402,7 @@ class _PetTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        // Кнопки заботы.
+        // Кнопки заботы: цена на кнопке, а что изменилось — на карточке.
         Row(
           children: [
             Expanded(
@@ -378,7 +413,19 @@ class _PetTab extends StatelessWidget {
                 color: AppColors.leaf,
                 enabled:
                     pet.canFeed && wallet.canAfford(CareCosts.feed),
-                onTap: () => _care(context, () => petService.feed()),
+                onTap: () => _care(
+                  context,
+                  emoji: '🍎',
+                  title: 'Покормил(а) питомца',
+                  message:
+                      '${pet.name} больше не голоден — сытость растёт.',
+                  needLabel: 'корм',
+                  cost: CareCosts.feed,
+                  statusLabel: 'Сытость',
+                  statusBefore: pet.hunger,
+                  statusAfter: () => pet.hunger,
+                  perform: () => petService.feed(),
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -390,7 +437,19 @@ class _PetTab extends StatelessWidget {
                 color: AppColors.secondary,
                 enabled:
                     pet.canPlay && wallet.canAfford(CareCosts.play),
-                onTap: () => _care(context, () => petService.play()),
+                onTap: () => _care(
+                  context,
+                  emoji: '🎾',
+                  title: 'Поиграл(а) с питомцем',
+                  message:
+                      '${pet.name} отлично проводит время — веселье растёт.',
+                  needLabel: 'игру',
+                  cost: CareCosts.play,
+                  statusLabel: 'Веселье',
+                  statusBefore: pet.fun,
+                  statusAfter: () => pet.fun,
+                  perform: () => petService.play(),
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -401,7 +460,19 @@ class _PetTab extends StatelessWidget {
                 cost: CareCosts.wash,
                 color: AppColors.sky,
                 enabled: pet.canWash && wallet.canAfford(CareCosts.wash),
-                onTap: () => _care(context, () => petService.wash()),
+                onTap: () => _care(
+                  context,
+                  emoji: '🫧',
+                  title: 'Помыл(а) питомца',
+                  message:
+                      '${pet.name} чистый — чистота на максимуме.',
+                  needLabel: 'купание',
+                  cost: CareCosts.wash,
+                  statusLabel: 'Чистота',
+                  statusBefore: pet.cleanliness,
+                  statusAfter: () => pet.cleanliness,
+                  perform: () => petService.wash(),
+                ),
               ),
             ),
           ],
@@ -410,32 +481,54 @@ class _PetTab extends StatelessWidget {
     );
   }
 
-  void _care(BuildContext context, bool Function() perform) {
+  /// Забота (кормление / игра / мытьё): списывает монетки, обновляет статусы
+  /// и показывает карточку обратной связи (ТЗ §8.9). При нехватке средств —
+  /// безопасное объяснение и способ исправить, без обнуления прогресса.
+  void _care(
+    BuildContext context, {
+    required String emoji,
+    required String title,
+    required String message,
+    required String needLabel,
+    required int cost,
+    required String statusLabel,
+    required double statusBefore,
+    required double Function() statusAfter,
+    required bool Function() perform,
+  }) {
+    final svc = context.read<PetService>();
+    final wallet = context.read<WalletService>();
+    final feedback = context.read<FeedbackService>();
+    final pet = svc.pet;
+    if (pet == null) return;
+
     final ok = perform();
     if (!ok) {
-      _toast(context, 'Не хватает монеток 🪙');
+      feedback.post(FeedbackEvent.careInsufficient(
+        petName: pet.name,
+        needLabel: needLabel,
+        needed: (cost - wallet.balance).clamp(0, 999999),
+        petMood: pet.mood,
+      ));
       return;
     }
-    final svc = context.read<PetService>();
     if (svc.justLeveledUp) {
       svc.consumeLevelUp();
-      _toast(context, '🎉 Уровень повышен!');
+      feedback.post(
+          FeedbackEvent.levelUp(level: pet.level, petName: pet.name));
     } else {
-      _toast(context, 'Готово, питомец доволен 🐾');
+      feedback.post(FeedbackEvent.care(
+        actionEmoji: emoji,
+        title: title,
+        message: message,
+        statusChange:
+            '$statusLabel: ${statusBefore.round()} → ${statusAfter().round()}',
+        cost: cost,
+        nextStep: 'Дальше: сделай задание или добавь в копилку.',
+        petMood: pet.mood,
+        petName: pet.name,
+      ));
     }
-  }
-
-  void _toast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.ink,
-          duration: const Duration(seconds: 2),
-        ),
-      );
   }
 }
 
@@ -895,6 +988,7 @@ void _doSaveGoal(
   PiggyBankGoal goal,
   int amount,
 ) {
+  final savedBefore = goal.saved;
   final ok = piggy.saveToGoal(goal.id, amount);
   if (!context.mounted) return;
   final messenger = ScaffoldMessenger.of(context)
@@ -903,16 +997,26 @@ void _doSaveGoal(
     messenger.showSnackBar(_snack('Не хватает монеток 🪙'));
     return;
   }
-  if (goal.isReached) {
-    messenger.showSnackBar(
-        _snack('🎉 Цель «${goal.title}» достигнута! +$goalReachedXp XP'));
-    if (petService.justLeveledUp) {
-      petService.consumeLevelUp();
-      messenger.showSnackBar(_snack('🎉 Уровень повышен!'));
-    }
-  } else {
-    messenger.showSnackBar(_snack('В копилку +$amount 🪙'));
+  // saveToGoal ограничивает сумму до остатка до цели — показываем факт.
+  final actual = (goal.saved - savedBefore).clamp(1, 999999);
+  final pet = petService.pet;
+  final feedback = context.read<FeedbackService>();
+  if (goal.isReached && petService.justLeveledUp) {
+    // Повышение уровня громче достижения цели.
+    petService.consumeLevelUp();
+    feedback.post(
+        FeedbackEvent.levelUp(level: pet?.level ?? 1, petName: pet?.name ?? 'Питомец'));
+    return;
   }
+  feedback.post(FeedbackEvent.savings(
+    amount: actual,
+    goalTitle: goal.title,
+    saved: goal.saved,
+    target: goal.target,
+    petMood: pet?.mood,
+    petName: pet?.name,
+    reached: goal.isReached,
+  ));
 }
 
 /// Диалог создания новой цели копилки.
