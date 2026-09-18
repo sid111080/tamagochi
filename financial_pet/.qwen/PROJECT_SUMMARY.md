@@ -8,69 +8,65 @@ Build **"Финансовый питомец" (Financial Pet)** — an offline F
 ### Technology & Conventions
 - **Real stack: `provider` + `shared_preferences`** (ChangeNotifier services). NOT the BLoC + Hive + go_router + freezed that `QWEN.md` lists. **Do not migrate without explicit request.**
 - **Language:** all UI text + comments in Russian; code identifiers in English.
-- **Constraints (ТЗ):** offline, no real money, no child PII, guest mode, «безопасная ошибка» (bad choice → fix task, never zeroes progress), ≥48dp targets / ≥16sp text, color never the only signal.
+- **Constraints (ТЗ):** fully offline (no API/analytics/ads), no real money, no child PII, guest mode (no registration), «безопасная ошибка» (a bad choice creates a fix task, never zeroes progress), accessibility ≥48dp targets / ≥16sp text, color never the only signal.
+- **Common pitfall this session (twice): controller + non-rebuilding ancestor.** When a `TextEditingController` drives UI outside the `TextField` (e.g., button `onPressed` in an `AlertDialog`), the ancestor must `setState` via `_controller.addListener(...)` — typing only rebuilds the field itself.
 
 ### Environment & Build
 - Working dir: `/Users/alexander/tamagochi/financial_pet`. **Git root = parent** `/Users/alexander/tamagochi` (paths appear as `financial_pet/lib/...`). Branch `main` tracks `origin/main`.
-- **Verify:** `flutter analyze` (must be clean) + `flutter test` from project dir.
-- **Do NOT commit parent-repo files** (`../.DS_Store`, `../.qwen/settings.json`, `../Documents/`).
-- Commits in Russian, style: `«Фича» (ТЗ §8.X): краткое описание`.
+- **Verify:** `flutter analyze` (must be clean) + `flutter test` from project dir. Latest run: **99/99 green**.
+- **APK:** `flutter build apk --debug` → `build/app/outputs/flutter-apk/app-debug.apk`.
+- **Do NOT commit parent-repo files** (`../.DS_Store`, `../.qwen/settings.json`, `../Documents/`) — they show as modified in `git status`.
+- **Commits: user commits themselves, in Russian.** Recent style: terse, sometimes verbatim from the bug report (e.g., `47df3f6` message is the user's original bug text; `a821471 8.10.Что добавлено (полировка §8.10)`).
+- **Device testing:** user is actively testing on **Pixel 10a** (Android 17) — a log file `Pixel-10a-Android-17_2026-09-13_033656.txt` sits in the project root. Findings come back as short bug reports; verify their fixes on narrow screens.
 - `fl_chart 0.70.2` gotchas: `BarChart(data, duration:)` positional; no `showTooltips` on `BarChartGroupData`; colors `.withValues(alpha:)`.
 
 ### SDK version gotchas (Flutter on /opt/homebrew/share/flutter — new master)
-Discovered while writing widget tests; they will bite again:
 - **flutter_test API:** parameter type is `WidgetTester` (NOT `TestWidgetTester`); `takeAllExceptions`/`takeAllExceptionDetails` do NOT exist; `tester.view.physicalSize` works.
-- **`Element`** has no `child`/`nextSibling`/`childElements` — use `element.visitChildren((c) { ... })` (void visitor, no bool return).
-- **`IndexedStack` inactive tabs are OFFSTAGE** (wrapped in `_VisibilityScope`/`ExcludeFocus`) → default `find.*` (skipOffstage: true) does NOT see them. In tests: switch to the tab via the BottomNavigationBar label first.
-- **`AnimatedSwitcher` (new implementation, own file) + fake async:** a single `pump(300ms)` does NOT complete the transition (SizeTransition stuck, card renders off-screen); use `pumpAndSettle()`.
-- **Pending timers:** binding asserts `!timersPending` at end of test body, BEFORE addTearDown callbacks. Periodic timers (PetService 15s) must be disposed inside the test body: unmount tree (`pumpWidget(SizedBox())`) then dispose services. Auto-dismiss timers: call `dismiss()` before test end.
-- **Ahem font in tests** has taller lines than real fonts: a card that fits on device can overflow in tests. Product card fixed with `mainAxisExtent: 160` (was `childAspectRatio: 1.3` → 12px RenderFlex overflow at 800×600 / narrow widths).
+- **`Element`** has no `child`/`nextSibling`/`childElements` — use `element.visitChildren((c) { ... })`.
+- **`IndexedStack` inactive tabs are OFFSTAGE** → default `find.*` doesn't see them; switch tabs via BottomNavigationBar label in tests first.
+- **`AnimatedSwitcher` (new implementation) + fake async:** single `pump(300ms)` does NOT complete the transition; use `pumpAndSettle()`.
+- **Pending timers:** binding asserts `!timersPending` at end of test body BEFORE addTearDown. Periodic timers (PetService 15s) must be disposed in test body (unmount tree, then dispose services). Auto-dismiss timers: call `dismiss()` before test end.
+- **Ahem font in tests** has taller lines than real fonts — cards that fit on device can overflow in tests.
+- New-SDK `AnimatedSwitcher` mis-positions children inside `Positioned` — prefer in-flow placement over overlays.
 
 ### Architecture (4 layers)
-- `lib/core/models/`: `Pet` (hunger/fun/cleanliness 0..100; level=1+totalXp/60; Mood happy/okay/sad + `MoodX.emoji/label` extension), `Wallet` (start 50, no negative, `CoinTransaction`), `PetSpecies` (5×4 stages), `StreakBadge`, `PiggyBankGoal`, `Task`+`TaskOption`, `budget.dart` (BudgetDirection, FinancialStage, Period…), `purchase.dart`, `growth_stage.dart`, **`feedback_event.dart`** (FeedbackTone success/info/caution/celebration; factories: care, careInsufficient, purchaseSuccess, purchaseInsufficient, savings(reached:), levelUp).
-- `lib/core/services/` (created in `main.dart`): WalletService → PetService (care 15/10/10, `justLeveledUp`) → TaskService (rotation, demo-all) → PiggyBankService (`saveToGoal` clamps to goal remainder, +20xp on reach) → PurchaseService (8 items, `trySpend`+`applyPurchaseEffect`) → **FeedbackService** (current event + history(≤30), 5s auto-dismiss, `post/dismiss/clear`) → PeriodService (5/season, sets `spendReporter` on pet+piggy+purchase) → DemoService (last; test profile «Муся»/kitten).
-- `lib/features/`: onboarding (splash + 3-slide onboarding, hint lightbulb), pet_creation, home (`home_screen` **6 tabs**: Питомец/Бюджет/Покупки/Задания/Кошелёк/**История**; **FeedbackCard banner** between header and tabs), budget, purchases, tasks (quiz with own inline `_FeedbackPanel` — does NOT post to FeedbackService), **progress** (`history_tab.dart`, ТЗ §8.11), adult (hold barrier, progress, reset/delete).
-- `lib/data/content/`: `content_repository` (tasks JSON), `education_goals` (adult section), `purchases` (catalog), **`glossary.dart`** (`GlossaryTerm` + `glossary` const — справочник терминов §8.11).
-- `lib/widgets/`: action_button, coin_badge, earnings_chart, level_indicator, status_bar, **feedback_card** (tone color+word+emoji, chips, «Понятно» 48dp).
+- `lib/core/models/`: `Pet` (hunger/fun/cleanliness 0..100; level=1+totalXp/60; mood), `Wallet` (start 50, no negative), `PetSpecies` (5×4 stages), `StreakBadge`, `PiggyBankGoal`, `Task`+`TaskOption`, `budget.dart`, `purchase.dart`, `growth_stage.dart`, `feedback_event.dart`.
+- `lib/core/services/` (creation order in `main.dart`): WalletService → PetService (care 15/10/10) → TaskService (rotation, demo-all) → PiggyBankService → PurchaseService (8 items) → FeedbackService (event + history ≤30, 5s auto-dismiss) → PeriodService (5/season, sets `spendReporter`) → DemoService (test profile «Муся»/kitten).
+- `lib/features/`: onboarding (splash + 3 slides, hint lightbulb), pet_creation, home (**6 tabs**: Питомец/Бюджет/Покупки/Задания/Кошелёк/История; FeedbackCard banner between header and tabs), budget, purchases, tasks (quiz with own inline `_FeedbackPanel` — does NOT post to FeedbackService; **now auto-scrolls to feedback after answer**), progress (`history_tab.dart` §8.11), adult (hold barrier, reset/delete).
+- `lib/data/content/`: `content_repository` (tasks JSON), `education_goals`, `purchases`, `glossary.dart`.
+- `lib/widgets/`: action_button, coin_badge, earnings_chart, level_indicator, status_bar, feedback_card.
 
 ### ТЗ §8 coverage
 | § | Status |
 |---|---|
-| 8.1 onboarding/profile | ✅ dd8757f |
-| 8.2 pet creation | ✅ |
-| 8.3 main screen | ✅ (5 tabs) |
-| 8.4 currency/income | ✅ |
-| 8.5 budget planning | ✅ |
-| 8.6 purchases | ✅ f103f1a/88b889d + overflow fix aa91e8c |
-| 8.7 savings/goals | ✅ |
-| 8.8 tasks | ✅ |
-| 8.9 feedback | ✅ aa91e8c (care/purchase/piggy/period-end; quiz uses inline panel) |
-| 8.10 pet development | ~ stages + xp exist; visualization partly in budget tab |
-| 8.11 history/progress | ✅ e35665e `history_tab.dart` (6th tab): период-итог, темы, цели, задания, операции, словарь |
-| 8.12 adult section | ✅ 63b706d |
-| 8.13 save + demo | ✅ da18e00 |
-| 8.14 content management | ✅ (ContentRepository, purchaseCatalog) |
+| 8.1–8.7, 8.8 | ✅ all built (onboarding, pet, home, currency, budget, purchases, savings, tasks/quiz) |
+| 8.9 feedback | ✅ `aa91e8c` (care/purchase/piggy/period-end; quiz uses inline panel) |
+| 8.10 pet development | ✅ polish committed `a821471`; seasons/species variety still open |
+| 8.11 history/progress | ✅ `e35665e` (`history_tab.dart`) |
+| 8.12 adult section | ✅ `63b706d` |
+| 8.13 save + demo | ✅ `da18e00` |
+| 8.14 content management | ✅ (ContentRepository + JSON) |
+
+### Git state (end of session)
+- `main` = `origin/main` = `47df3f6` (goal-button fix, committed + pushed by user).
+- **`lib/features/tasks/quiz_screen.dart` is STAGED, NOT committed** (quiz auto-scroll fix) — user to commit.
+- Parent-repo noise present (`.DS_Store`, `.qwen/settings.json`, `Documents/`) — never stage it.
 
 ## Recent Actions
-1. **Feedback layer (ТЗ §8.9) completed** — commit `aa91e8c` (9 files, +753/−46):
-   - Fixed compile error (`required bool reached` in `FeedbackEvent.savings`).
-   - Registered `FeedbackService` in `main.dart`; new `feedback_card.dart`.
-   - **Card placement: banner in normal flow** (between header and tabs in `home_screen` Column). First attempt used `Positioned` overlay — new-SDK `AnimatedSwitcher` mis-positions children inside `Positioned` (card rendered off-screen). Banner is also safer on small phones.
-   - Events posted from: care actions (`_care` in `_PetTab`), purchases (success/insufficient), piggy top-up (savings/levelUp), period finish (info); cleared on demo reset/exit and adult reset/delete.
-   - Care flow rewritten: buttons pass statusBefore/labels; card shows «Сытость: 80 → 100», «−15 монеток», next step; level-up wins over care event.
-   - Fixed product-card overflow (`mainAxisExtent: 160`).
-2. **Tests: 91 green** (was 89 pre-feedback; +13 new: 8 unit in `feedback_service_test.dart` + … incl. factory safety checks, 2 widget in `home_feedback_test.dart`).
-3. `flutter analyze` clean.
-4. **«История и прогресс» (ТЗ §8.11) built + committed** `e35665e`: new `lib/features/progress/history_tab.dart` (6th tab: период-итог, умения по темам, цели копилки, пройденные задания, история операций, словарь), new `lib/data/content/glossary.dart`, `TaskService.completedHistory`/`completedCount` getters, 6th tab in `home_screen` (`history_rounded` icon), bottom-nav label size locked to 12px in theme. +4 tests → **95 green**, analyze clean.
+1. **Fixed «Создать» button in `_AddGoalDialog`** (`lib/features/home/home_screen.dart`): button enabled based on `_controller.text` in the dialog's `build`, but typing only rebuilt the `TextField` (dialog is a separate State) → button stayed disabled until a chip click triggered `setState`. Fix: `_controller.addListener(() => setState(() {}))` in `initState`. Also fixed the same staleness for the name preview in `lib/features/pet_creation/create_pet_screen.dart`. Verified: analyze clean, 99/99 tests. → **User committed as `47df3f6` and pushed** (user confirmed on device: «тут хорошо сделал, молодец»).
+2. **Fixed quiz «К заданиям» button below the fold** (`lib/features/tasks/quiz_screen.dart`): after answering, the feedback panel + button appended to the `ListView` were below the screen bottom on Pixel 10a. Fix: `ScrollController` on the `ListView`; `_scrollToFeedback()` runs `animateTo(maxScrollExtent, 300ms, easeOut)` in a post-frame callback after the answer (no-op when content fits); `_retry()` jumps back to top. Added `dispose()`. Verified: analyze clean, 99/99. **Staged, awaiting user commit.**
+3. **Built debug APKs** (two requests; second was Gradle up-to-date, ~1s) — output at `build/app/outputs/flutter-apk/app-debug.apk`.
+4. User asked for `/summary` + `/recap` (no such skills exist) — was updating `.qwen/PROJECT_SUMMARY.md` and root `TODO.md` (stale: says 94 tests, lists §8.11 as uncommitted) when the summary request arrived.
 
 ## Current Plan
-1. [DONE] Feedback layer §8.9 — committed `aa91e8c`, NOT pushed (user pushes themselves).
-2. [DONE] §8.11 «История» UI — committed `e35665e`, NOT pushed.
-3. [NEXT] **Device verification** on Pixel 10a: 6 bottom-nav tabs on a narrow screen (check «Кошелёк»/«История» labels fit, no overflow), feedback card on feed/purchase/piggy/period-end, purchases grid, and the new История tab populated. Then **push** (user pushes themselves).
-4. [TODO] Polish: §8.10 stage visualization, seasons, pet species variety, history in wallet.
-
-**Verification recipe for device:** feed pet → card appears → «Понятно»/auto-dismiss; buy «Корм» → card; piggy 20 → info card (or celebration on goal); finish period → info card; demo reset/exit → no stale card; adult reset/delete → no stale card.
+1. [DONE] Goal-button fix — committed `47df3f6`, pushed, user-verified on device.
+2. [DONE] Quiz auto-scroll fix — tested green; **staged, user will commit** (Russian message, e.g., about button being below screen).
+3. [IN PROGRESS] **Device verification on Pixel 10a** (user is driving): remaining checks — 6 bottom-nav tabs on narrow screen («Кошелёк»/«История» labels fit, no overflow), feedback cards on feed/purchase/piggy/period-end, purchases grid, populated История tab, quiz flow end-to-end. Bug reports arrive as short user messages.
+4. [TODO] Finish summary housekeeping: update root `TODO.md` (test count 99; remove stale «закоммитить §8.11» item) and `.qwen/PROJECT_SUMMARY.md`; deliver the chat recap.
+5. [TODO] **§8.10 polish**: stage visualization, seasons, pet species variety, history in wallet.
+6. [TODO] Push pending quiz commit once user commits (user pushes themselves).
 
 ---
+
 ## Summary Metadata
-**Update time**: 2026-09-17 (session: feedback layer)
+**Update time**: 2026-09-18T21:53:27.888Z

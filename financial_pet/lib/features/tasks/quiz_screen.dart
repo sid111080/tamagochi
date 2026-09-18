@@ -25,7 +25,28 @@ class _QuizScreenState extends State<QuizScreen> {
   final Set<String> _triedWrong = {};
   QuizResult? _result;
 
+  final _scrollController = ScrollController();
+
   bool get _answered => _result != null;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Прокручиваем вниз, чтобы панель обратной связи и кнопка
+  /// были видны сразу после ответа.
+  void _scrollToFeedback() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +67,7 @@ class _QuizScreenState extends State<QuizScreen> {
       ),
       body: SafeArea(
         child: ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           children: [
             // Тема + сложность.
@@ -182,12 +204,18 @@ class _QuizScreenState extends State<QuizScreen> {
       _result = result;
       if (!result.isCorrect) _triedWrong.add(optionId);
     });
+    _scrollToFeedback();
   }
 
   void _retry() {
     setState(() {
       _selectedOptionId = null;
       _result = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
     });
   }
 
