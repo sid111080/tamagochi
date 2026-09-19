@@ -18,6 +18,30 @@ void main() {
       expect(pet.stage, GrowthStage.child);
     });
 
+    group('sizeScale — видимый рост по уровню', () {
+      test('растёт на 1→2 (баг: раньше размер не менялся)', () {
+        final pet = Pet(id: 'p', name: 'x', speciesId: 'panda');
+        final s1 = pet.sizeScale;
+        pet.addXp(Pet.xpPerLevel); // → уровень 2
+        expect(pet.level, 2);
+        expect(pet.sizeScale, greaterThan(s1));
+      });
+
+      test('монотонен до потолка, затем стабилен', () {
+        final pet = Pet(id: 'p', name: 'x', speciesId: 'panda');
+        var prev = pet.sizeScale;
+        for (var i = 0; i < 6; i++) {
+          pet.addXp(Pet.xpPerLevel);
+          expect(pet.sizeScale, greaterThan(prev));
+          prev = pet.sizeScale;
+        }
+        // Дальше — потолок (взрослый): рост останавливается.
+        pet.addXp(Pet.xpPerLevel * 3);
+        expect(pet.sizeScale, lessThanOrEqualTo(1.40));
+        expect(pet.sizeScale, prev);
+      });
+    });
+
     test('кормление повышает сытость и даёт опыт', () {
       final pet = Pet(
           id: 'p1', name: 'Муся', speciesId: 'kitten', hunger: 50);

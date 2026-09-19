@@ -11,14 +11,6 @@ extension GrowthStageX on GrowthStage {
         GrowthStage.adult => 'Взрослый',
       };
 
-  /// Множитель размера: чем взрослее, тем крупнее.
-  double get sizeScale => switch (this) {
-        GrowthStage.baby => 0.75,
-        GrowthStage.child => 0.9,
-        GrowthStage.teen => 1.05,
-        GrowthStage.adult => 1.2,
-      };
-
   /// Индекс для выбора эмодзи вида по стадии.
   int get index => GrowthStage.values.indexOf(this);
 

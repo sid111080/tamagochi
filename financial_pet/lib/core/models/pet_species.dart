@@ -33,7 +33,8 @@ class PetSpecies {
       id: 'kitten',
       displayName: 'Котёнок',
       defaultName: 'Муся',
-      stageEmojis: ['🐱', '🐱', '🐈', '🦁'],
+      // Стадии различимы: мордочка → кошка → кошка → лев (взрослый).
+      stageEmojis: ['🐱', '🐈', '🐈', '🦁'],
       color: Color(0xFFFF8A65),
       tagline: 'Ласковый и любознательный',
     ),
@@ -49,7 +50,8 @@ class PetSpecies {
       id: 'dragon',
       displayName: 'Дракончик',
       defaultName: 'Чарли',
-      stageEmojis: ['🐲', '🐉', '🐉', '🐉'],
+      // Стадии различимы: мордочка (малыш/ребёнок) → полный дракон (подросток/взрослый).
+      stageEmojis: ['🐲', '🐲', '🐉', '🐉'],
       color: Color(0xFF6BCB77),
       tagline: 'Смелый защитник копилки',
     ),

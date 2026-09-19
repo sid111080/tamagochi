@@ -58,6 +58,9 @@ class LevelIndicator extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Ось 1: физический рост питомца (от XP за заботу и задания).
+          _sectionLabel('🐾', 'Рост питомца'),
+          const SizedBox(height: 8),
           // Уровень + XP до следующего.
           Row(
             children: [
@@ -120,7 +123,12 @@ class LevelIndicator extends StatelessWidget {
             ),
           ),
           if (stage != null) ...[
-            const Divider(height: 20, color: Color(0x1A000000)),
+            const SizedBox(height: 14),
+            // Ось 2: финансовая зрелость (от итогов периодов) — отдельная
+            // механика, не зависит от XP; подписана, чтобы ребёнок понимал
+            // разницу с «Ростом питомца» выше.
+            _sectionLabel('💰', 'Умение с деньгами'),
+            const SizedBox(height: 8),
             // Стадии: текущая подсвечена иконкой и жирным шрифтом
             // (цвет — не единственный сигнал, ТЗ §10).
             Row(
@@ -191,4 +199,23 @@ class LevelIndicator extends StatelessWidget {
       ),
     );
   }
+
+  /// Компактный заголовок секции: эмодзи + подпись. Отделяет две независимые
+  /// оси развития, чтобы ребёнок видел: «рост» и «финансы» — разные шкалы.
+  Widget _sectionLabel(String emoji, String text) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.inkSoft,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      );
 }

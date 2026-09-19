@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/feedback_event.dart';
-import '../../core/models/growth_stage.dart';
 import '../../core/models/pet.dart';
 import '../../core/models/pet_species.dart';
 import '../../core/models/piggy_bank_goal.dart';
@@ -385,7 +384,8 @@ class _PetTab extends StatelessWidget {
 
     final species = PetSpecies.byId(pet.speciesId);
     final emoji = species.emojiForIndex(pet.stage.index);
-    final scale = pet.stage.sizeScale;
+    // Размер — от уровня (плавный рост каждый уровень), а не от стадии.
+    final scale = pet.sizeScale;
 
     return ListView(
       // Компактная компоновка (ТЗ §8.3): всё главное — без скролла.
