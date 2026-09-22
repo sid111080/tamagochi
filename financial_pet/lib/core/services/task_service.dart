@@ -27,6 +27,9 @@ class QuizResult {
     required this.option,
     required this.isCorrect,
     required this.reward,
+    this.leveledUp = false,
+    this.level = 0,
+    this.petName = '',
   });
 
   final Task task;
@@ -37,6 +40,15 @@ class QuizResult {
 
   /// Награда, начисленная за верный ответ (0, если ошибка).
   final int reward;
+
+  /// Питомец поднялся в уровень с этим опытом (празднование в UI).
+  final bool leveledUp;
+
+  /// Новый уровень питомца (если [leveledUp]).
+  final int level;
+
+  /// Имя питомца (для текста празднования).
+  final String petName;
 }
 
 /// Управляет заданиями по финансовой грамотности в формате квиза.
@@ -109,11 +121,16 @@ class TaskService extends ChangeNotifier {
     return pool.where((t) => _isAvailable(t.id, now)).toList();
   }
 
-  /// Выполненные в текущем периоде (в демо — за день-сессию).
+  /// Выполненные сегодня задания (все раунды дня, а не только текущий)
+  /// — для секции «Пройдено сегодня».
   List<Task> get completedTasks {
-    final now = clock();
-    final pool = _demoAll ? content : _selected;
-    return pool.where((t) => !_isAvailable(t.id, now)).toList();
+    final day = _dayKey(clock());
+    return content
+        .where((t) {
+          final at = _completed[t.id];
+          return at != null && _dayKey(DateTime.parse(at)) == day;
+        })
+        .toList();
   }
 
   int get availableCount => availableTasks.length;
@@ -167,8 +184,7 @@ class TaskService extends ChangeNotifier {
     _day = _dayKey(now);
 
     final stored = _loadRaw();
-    if (stored != null && stored['day'] == _day) {
-      _selectedIds = _stringList(stored['ids']);
+    if (stored != null) {
       _streak = (stored['streak'] as num?)?.toInt() ?? 0;
       _maxStreak = (stored['maxStreak'] as num?)?.toInt() ?? _streak;
       _lastStreakDay = stored['lastStreakDay'] as String? ?? '';
@@ -176,19 +192,27 @@ class TaskService extends ChangeNotifier {
       _completed
         ..clear()
         ..addAll(_stringMap(stored['completed']));
-    } else {
-      _selectedIds = _selectForPeriod(_day);
-      if (stored != null) {
-        _streak = (stored['streak'] as num?)?.toInt() ?? 0;
-        _maxStreak = (stored['maxStreak'] as num?)?.toInt() ?? _streak;
-        _lastStreakDay = stored['lastStreakDay'] as String? ?? '';
-        if (_streak > _maxStreak) _maxStreak = _streak;
-        _completed
-          ..clear()
-          ..addAll(_stringMap(stored['completed']));
-      }
     }
+    // Набор выводится из (день, раунд) детерминированно, без опоры
+    // на сохранённые ids (они остаются в файле для совместимости).
+    _refreshSelection();
+  }
 
+  /// Текущий раунд дня: сколько полных наборов по [_tasksPerDay]
+  /// выполнено сегодня. Раунды разбивают пул без пересечений:
+  /// 0-й — первые 3 задания, 1-й — следующие 3 и т.д.
+  int get _round {
+    final day = _day;
+    var doneToday = 0;
+    for (final v in _completed.values) {
+      if (_dayKey(DateTime.parse(v)) == day) doneToday++;
+    }
+    return doneToday ~/ _tasksPerDay;
+  }
+
+  /// Пересобрать текущий набор из (день, раунд).
+  void _refreshSelection() {
+    _selectedIds = _selectForPeriod(_day, _round);
     _selected = _selectedIds
         .map((id) => _contentIndex[id])
         .whereType<Task>()
@@ -196,11 +220,14 @@ class TaskService extends ChangeNotifier {
   }
 
   /// Детерминированный выбор из пула: одинаковое зерно (ключ даты)
-  /// даёт одинаковый набор.
-  List<String> _selectForPeriod(String day) {
+  /// даёт одинаковый перемешанный список; [round] берёт из него
+  /// очередной срез по [_tasksPerDay].
+  List<String> _selectForPeriod(String day, int round) {
     if (content.isEmpty) return const [];
     final ids = content.map((t) => t.id).toList()..shuffle(Random(_intKey(day)));
-    return ids.sublist(0, _tasksPerDay.clamp(0, ids.length));
+    final start = round * _tasksPerDay;
+    if (start >= ids.length) return const [];
+    return ids.sublist(start, (start + _tasksPerDay).clamp(0, ids.length));
   }
 
   // --- Выполнение ---
@@ -247,9 +274,18 @@ class TaskService extends ChangeNotifier {
 
     _completed[taskId] = now.toIso8601String();
     _updateStreak(now);
+    // Раунд мог смениться (все 3 выполнены) → новые задания.
+    _refreshSelection();
     _save();
     return QuizResult(
-        task: task, option: option, isCorrect: true, reward: task.reward);
+      task: task,
+      option: option,
+      isCorrect: true,
+      reward: task.reward,
+      leveledUp: _pet.justLeveledUp,
+      level: _pet.pet?.level ?? 0,
+      petName: _pet.pet?.name ?? '',
+    );
   }
 
   /// Стрик: +1, если вчера тоже выполняли; сброс в 1, если был пропуск.
@@ -268,7 +304,8 @@ class TaskService extends ChangeNotifier {
     _maxStreak = 0;
     _lastStreakDay = '';
     _completed.clear();
-    _selectedIds = _selectForPeriod(_dayKey(clock()));
+    _day = _dayKey(clock());
+    _refreshSelection();
     _save();
   }
 
@@ -313,9 +350,6 @@ class TaskService extends ChangeNotifier {
 
   /// '2026-09-13' → 20260913: стабильное числовое зерно (в отличие от hashCode).
   static int _intKey(String key) => int.parse(key.replaceAll('-', ''));
-
-  static List<String> _stringList(Object? raw) =>
-      (raw as List?)?.map((e) => e.toString()).toList() ?? const [];
 
   static Map<String, String> _stringMap(Object? raw) {
     if (raw is! Map) return {};

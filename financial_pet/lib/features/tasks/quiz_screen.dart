@@ -409,6 +409,34 @@ class _FeedbackPanel extends StatelessWidget {
                 ),
               ),
             ),
+          // Момент роста: уровень поднят — прямо здесь, где ребёнок
+          // его заработал (ТЗ §8.10). Аватар на вкладке «Питомец»
+          // стал больше — подсказываем туда.
+          if (ok && result.leveledUp)
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.55)),
+              ),
+              child: Text(
+                result.petName.isNotEmpty
+                    ? '🎉 Уровень ${result.level}! '
+                            '${result.petName} растёт — посмотри на вкладке «Питомец»'
+                    : '🎉 Уровень ${result.level}! Питомец растёт — '
+                        'посмотри на вкладке «Питомец»',
+                style: const TextStyle(
+                  fontSize: 15,
+                  height: 1.3,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF8A6D00),
+                ),
+              ),
+            ),
         ],
       ),
     );

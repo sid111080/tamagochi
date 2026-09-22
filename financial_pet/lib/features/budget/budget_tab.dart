@@ -16,7 +16,13 @@ import '../../core/services/period_service.dart';
 ///   2. [PeriodPhase.active]   — план зафиксирован, тратим, виден факт.
 ///   3. [PeriodPhase.finished] — сравнение плана с фактом и влияние на питомца.
 class BudgetTab extends StatefulWidget {
-  const BudgetTab({super.key});
+  const BudgetTab({super.key, this.isActiveTab = true});
+
+  /// Активна ли вкладка в IndexedStack (видна ли она ребёнку).
+  ///
+  /// Нужна, чтобы праздничный диалог сезона показывался только когда
+  /// вкладка реально на экране, а не когда строится в offstage-слое.
+  final bool isActiveTab;
 
   @override
   State<BudgetTab> createState() => _BudgetTabState();
@@ -94,6 +100,8 @@ class _BudgetTabState extends State<BudgetTab> {
                 period: period,
                 lastResult: periodService.lastResult,
                 stage: periodService.stage,
+                season: periodService.season,
+                isActiveTab: widget.isActiveTab,
                 onContinue: periodService.nextPeriod,
               ),
         },
@@ -561,18 +569,84 @@ class _ComparisonRow extends StatelessWidget {
 }
 
 /// Фаза «итог»: сравнение плана с фактом, критерии, влияние, кнопка дальше.
-class _FinishedView extends StatelessWidget {
+///
+/// StatefulWidget: при завершении 5-го периода (конец сезона) показывает
+/// праздничный диалог с итогом сезона (ТЗ §8.10, полировка п.3) — один раз.
+class _FinishedView extends StatefulWidget {
   const _FinishedView({
     required this.period,
     required this.lastResult,
     required this.stage,
+    required this.season,
     required this.onContinue,
+    this.isActiveTab = true,
   });
 
   final Period period;
   final PeriodResult? lastResult;
   final FinancialStage stage;
+
+  /// Сезон, который только что завершён (это 5-й период).
+  final int season;
+
+  /// Видна ли вкладка «Бюджет» (актуально в IndexedStack). Диалог сезона
+  /// показываем только когда вкладка на экране, а не в offstage-слое.
+  final bool isActiveTab;
   final VoidCallback onContinue;
+
+  @override
+  State<_FinishedView> createState() => _FinishedViewState();
+}
+
+class _FinishedViewState extends State<_FinishedView> {
+  // State переживает перестроения вью — поздравляем строго один раз.
+  bool _seasonCelebrated = false;
+
+  // Алиасы, чтобы тело build осталось прежним.
+  Period get period => widget.period;
+  PeriodResult? get lastResult => widget.lastResult;
+  VoidCallback get onContinue => widget.onContinue;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeCelebrateSeason();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FinishedView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Вкладка стала активной (например, ребёнок переключился на неё после
+    // перезапуска приложения) — показываем диалог, если ещё не показывали.
+    if (!oldWidget.isActiveTab && widget.isActiveTab) {
+      _maybeCelebrateSeason();
+    }
+  }
+
+  /// Празднуем конец сезона ровно один раз — и только когда вкладка видна.
+  void _maybeCelebrateSeason() {
+    if (_seasonCelebrated || !widget.isActiveTab) return;
+    if (widget.period.index != periodsPerSeason) return;
+    _seasonCelebrated = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showSeasonCelebration();
+    });
+  }
+
+  void _showSeasonCelebration() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _SeasonCelebrationDialog(
+        season: widget.season,
+        stage: widget.stage,
+        onDone: () {
+          Navigator.of(dialogContext).pop();
+          widget.onContinue(); // Новый сезон: открываем период 1.
+        },
+      ),
+    );
+  }
 
   Color _colorFor(BudgetDirection direction) => switch (direction) {
         BudgetDirection.required => AppColors.leaf,
@@ -652,12 +726,19 @@ class _FinishedView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
+          // 5-й период = конец сезона: кнопка и диалог используют один текст.
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: onContinue,
-              icon: const Icon(Icons.skip_next_rounded),
-              label: const Text('Следующий период'),
+              icon: period.index == periodsPerSeason
+                  ? const Icon(Icons.emoji_events_rounded)
+                  : const Icon(Icons.skip_next_rounded),
+              label: Text(
+                period.index == periodsPerSeason
+                    ? 'К новому сезону!'
+                    : 'Следующий период',
+              ),
             ),
           ),
         ],
@@ -752,6 +833,92 @@ class _PetReactionCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Праздничный диалог: сезон завершён (5 периодов).
+///
+/// Заметное поздравление (ТЗ §8.10, полировка п.3): трофей, номер сезона,
+/// достигнутая стадия финансовой зрелости и побудительное слово. Только
+/// позитив — без страха и стыда (ТЗ §6 «безопасная ошибка»).
+class _SeasonCelebrationDialog extends StatelessWidget {
+  const _SeasonCelebrationDialog({
+    required this.season,
+    required this.stage,
+    required this.onDone,
+  });
+
+  final int season;
+  final FinancialStage stage;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🏆', style: TextStyle(fontSize: 56)),
+            const SizedBox(height: 12),
+            Text(
+              'Сезон $season завершён!',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              '5 периодов — целая работа с деньгами.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.inkSoft),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.leaf.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                children: [
+                  Text(stage.emoji, style: const TextStyle(fontSize: 40)),
+                  const SizedBox(height: 6),
+                  Text(
+                    stage.label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Твоя стадия финансовой зрелости',
+                    style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onDone,
+                child: const Text(
+                  'К новому сезону!',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

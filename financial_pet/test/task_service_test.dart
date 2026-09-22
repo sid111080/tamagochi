@@ -216,4 +216,65 @@ void main() {
     expect(empty.availableCount, 0);
     expect(empty.answer('t0', 'a'), isNull);
   });
+
+  group('Раунды дня: новые задания без ожидания завтра', () {
+    test('после 3 выполненных открывается следующий срез пула', () {
+      expect(tasks.availableTasks, hasLength(3));
+
+      // Выполняем весь текущий набор.
+      for (final t in List.of(tasks.availableTasks)) {
+        tasks.answer(t.id, 'a');
+      }
+      expect(tasks.completedTasks, hasLength(3));
+
+      // Раунд 1: из пула 5 осталось 2 задания — без пересечений
+      // с пройденными.
+      final next = tasks.availableTasks;
+      expect(next, hasLength(2));
+      final doneIds = tasks.completedTasks.map((t) => t.id).toSet();
+      expect(next.every((t) => !doneIds.contains(t.id)), isTrue);
+    });
+
+    test('пул исчерпан: новых нет, «приходи завтра»', () {
+      // Пул 5: раунд 0 (3) + раунд 1 (2) = всё.
+      var guard = 0;
+      while (tasks.availableTasks.isNotEmpty && guard < 10) {
+        for (final t in List.of(tasks.availableTasks)) {
+          tasks.answer(t.id, 'a');
+        }
+        guard++;
+      }
+      expect(tasks.availableTasks, isEmpty);
+      expect(tasks.completedTasks, hasLength(5));
+    });
+
+    test('набор детерминирован: раунд 1 одинаков для двух сервисов', () {
+      for (final t in List.of(tasks.availableTasks)) {
+        tasks.answer(t.id, 'a');
+      }
+      final roundOne = tasks.selectedIds;
+      final other = TaskService(prefs, wallet, pet, _pool());
+      expect(other.selectedIds, roundOne);
+    });
+  });
+
+  group('Уровень питомца через квиз', () {
+    test('3 верных (3×20 XP = 60) → уровень 2, празднование в итоге', () {
+      final results = [
+        tasks.answer(tasks.availableTasks.first.id, 'a'), // 20 XP
+        tasks.answer(tasks.availableTasks.first.id, 'a'), // 40 XP
+        tasks.answer(tasks.availableTasks.first.id, 'a'), // 60 XP → ур. 2
+      ];
+      expect(results.map((r) => r!.leveledUp), [false, false, true]);
+      expect(results.last!.level, 2);
+      expect(results.last!.petName, 'Муся');
+    });
+
+    test('неверный ответ: без опыта и без празднования', () {
+      final result = tasks.answer(tasks.availableTasks.first.id, 'b');
+      expect(result!.isCorrect, isFalse);
+      expect(result.leveledUp, isFalse);
+      expect(pet.pet!.totalXp, 0);
+    });
+  });
 }

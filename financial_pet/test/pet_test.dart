@@ -27,17 +27,26 @@ void main() {
         expect(pet.sizeScale, greaterThan(s1));
       });
 
-      test('монотонен до потолка, затем стабилен', () {
+      test('шаг роста — ровно +25% с каждого уровня', () {
+        final pet = Pet(id: 'p', name: 'x', speciesId: 'panda');
+        expect(pet.sizeScale, closeTo(0.68, 0.001));
+        pet.addXp(Pet.xpPerLevel); // → уровень 2
+        expect(pet.sizeScale, closeTo(0.93, 0.001));
+        pet.addXp(Pet.xpPerLevel); // → уровень 3
+        expect(pet.sizeScale, closeTo(1.18, 0.001));
+      });
+
+      test('монотонен до потолка (5-й уровень), затем стабилен', () {
         final pet = Pet(id: 'p', name: 'x', speciesId: 'panda');
         var prev = pet.sizeScale;
-        for (var i = 0; i < 6; i++) {
+        for (var i = 0; i < 4; i++) {
           pet.addXp(Pet.xpPerLevel);
           expect(pet.sizeScale, greaterThan(prev));
           prev = pet.sizeScale;
         }
-        // Дальше — потолок (взрослый): рост останавливается.
+        // Дальше — потолок: рост останавливается.
         pet.addXp(Pet.xpPerLevel * 3);
-        expect(pet.sizeScale, lessThanOrEqualTo(1.40));
+        expect(pet.sizeScale, closeTo(1.68, 0.001));
         expect(pet.sizeScale, prev);
       });
     });

@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/budget.dart';
 import '../../core/models/feedback_event.dart';
 import '../../core/models/pet.dart';
 import '../../core/models/pet_species.dart';
@@ -24,8 +27,7 @@ import '../../widgets/action_button.dart';
 import '../../widgets/coin_badge.dart';
 import '../../widgets/earnings_chart.dart';
 import '../../widgets/feedback_card.dart';
-import '../../widgets/level_indicator.dart';
-import '../../widgets/status_bar.dart';
+import 'hud_metric_cards.dart';
 
 /// Главный экран: четыре таба — питомец, бюджет, задания, кошелёк.
 class HomeScreen extends StatefulWidget {
@@ -72,8 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     tooltip: 'Как играть?',
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) =>
-                            const OnboardingScreen(fromHint: true),
+                        builder: (_) => const OnboardingScreen(fromHint: true),
                       ),
                     ),
                     icon: const Icon(
@@ -86,8 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   IconButton(
                     tooltip: 'Для взрослых',
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const AdultSection()),
+                      MaterialPageRoute(builder: (_) => const AdultSection()),
                     ),
                     icon: const Icon(
                       Icons.supervised_user_circle_rounded,
@@ -127,8 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _SummaryChip(text: goalText, onTap: () => _openTab(4)),
                         const SizedBox(width: 8),
                         // Активное задание — во вкладку «Задания» (индекс 3).
-                        _SummaryChip(
-                            text: taskText, onTap: () => _openTab(3)),
+                        _SummaryChip(text: taskText, onTap: () => _openTab(3)),
                       ],
                     ),
                   ),
@@ -147,14 +146,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   transitionBuilder: (child, animation) => SizeTransition(
                     sizeFactor: animation,
                     alignment: const Alignment(0, 1),
-                    child:
-                        FadeTransition(opacity: animation, child: child),
+                    child: FadeTransition(opacity: animation, child: child),
                   ),
                   child: event == null
                       ? const SizedBox.shrink()
                       : Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                           child: FeedbackCard(
                             key: ValueKey(event),
                             event: event,
@@ -167,13 +164,16 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: IndexedStack(
                 index: _tab,
-                children: const [
-                  _PetTab(),
-                  BudgetTab(),
-                  PurchasesTab(),
-                  TasksTab(),
-                  _WalletTab(),
-                  HistoryTab(),
+                // Без const: BudgetTab получает динамический isActiveTab,
+                // чтобы праздничный диалог сезона показывался только на
+                // видимой вкладке, а не в offstage-слое IndexedStack.
+                children: [
+                  const _PetTab(),
+                  BudgetTab(isActiveTab: _tab == 1),
+                  const PurchasesTab(),
+                  const TasksTab(),
+                  const _WalletTab(),
+                  const HistoryTab(),
                 ],
               ),
             ),
@@ -228,7 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20))),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
         contentPadding: const EdgeInsets.all(20),
         title: const Text(
           '🎬 Демо-режим',
@@ -268,8 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -281,8 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Профиль очищен (питомец удалён) → на экран создания.
               if (homeContext.mounted) {
                 Navigator.of(homeContext).pushReplacement(
-                  MaterialPageRoute(
-                      builder: (_) => const CreatePetScreen()),
+                  MaterialPageRoute(builder: (_) => const CreatePetScreen()),
                 );
               }
             },
@@ -369,9 +368,18 @@ class _SummaryChip extends StatelessWidget {
   }
 }
 
-/// Таб «Питомец»: аватар, настроение, уровень, стадия, статусы, забота.
-class _PetTab extends StatelessWidget {
+/// Таб «Питомец», HUD-раскладка: питомец в центре, «приборы» вокруг —
+/// сверху уровень/XP/стадия, снизу метрики состояния и кнопки заботы.
+class _PetTab extends StatefulWidget {
   const _PetTab();
+
+  @override
+  State<_PetTab> createState() => _PetTabState();
+}
+
+class _PetTabState extends State<_PetTab> {
+  /// Вид метрик состояния (превью дизайна: переключается на экране).
+  HudMetricVariant _metricVariant = HudMetricVariant.bar;
 
   @override
   Widget build(BuildContext context) {
@@ -387,198 +395,256 @@ class _PetTab extends StatelessWidget {
     // Размер — от уровня (плавный рост каждый уровень), а не от стадии.
     final scale = pet.sizeScale;
 
-    return ListView(
-      // Компактная компоновка (ТЗ §8.3): всё главное — без скролла.
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Аватар + имя + настроение.
-        Center(
-          child: Column(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOutBack,
-                width: 96 * scale,
-                height: 96 * scale,
-                decoration: BoxDecoration(
-                  color: species.color.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: species.color.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Фиксированные блоки: полоса, имя, переключатель, метрики, кнопки.
+        // Остаток высоты уйдёт питомцу — он окажется в центре экрана.
+        final fixed = _fixedHeight() + 12; // запас против overflow
+        final avatarBox =
+            (constraints.maxHeight - fixed).clamp(60.0, 560.0).toDouble();
+        // Питомец — крупно, как в Tamagotchi: до ~75% ширины экрана.
+        final size = (280 * scale).clamp(
+          0.0,
+          math.min(constraints.maxWidth * 0.75, avatarBox),
+        ).toDouble();
+
+        return Column(
+          children: [
+            const SizedBox(height: 8),
+            // Верхняя приборная полоса: уровень, XP, стадия (ТЗ §8.10).
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _HudTopStrip(
+                pet: pet,
+                species: species,
+                stage: periods.stage,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Питомец — в центре оставшегося места.
+            // Ровно один AnimatedContainer вокруг аватара —
+            // тест pet_growth_test ищет его по эмодзи.
+            Expanded(
+              child: Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutBack,
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: species.color.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: species.color.withValues(alpha: 0.5),
+                      width: 2,
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    emoji,
-                    style: TextStyle(fontSize: 48 * scale),
+                    boxShadow: [
+                      BoxShadow(
+                        color: species.color.withValues(alpha: 0.35),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(emoji, style: TextStyle(fontSize: size / 2)),
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                pet.name,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
+            ),
+            const SizedBox(height: 10),
+            // Имя + настроение.
+            Column(
+              children: [
+                Text(
+                  pet.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(pet.mood.emoji, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 6),
+                    Text(
+                      pet.mood.label,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.inkSoft,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Превью дизайна: вид метрик (шкала / кольцо / ячейки).
+            _MetricVariantSwitcher(
+              variant: _metricVariant,
+              onChanged: (v) => setState(() => _metricVariant = v),
+            ),
+            const SizedBox(height: 8),
+            // Статусы: три карточки в ряд (выбранный вариант HUD).
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
                 children: [
-                  Text(pet.mood.emoji,
-                      style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 6),
-                  Text(
-                    pet.mood.label,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.inkSoft,
+                  Expanded(
+                    child: _metricCard(
+                      emoji: '🍎',
+                      label: 'Сытость',
+                      value: pet.hunger,
+                      color: AppColors.leaf,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _metricCard(
+                      emoji: '🎾',
+                      label: 'Веселье',
+                      value: pet.fun,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _metricCard(
+                      emoji: '🫧',
+                      label: 'Чистота',
+                      value: pet.cleanliness,
+                      color: AppColors.sky,
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Уровень + стадия финансовой ответственности (ТЗ §8.10) одной
-        // карточкой: видна на главном экране, растёт по итогам периодов.
-        LevelIndicator(
-          pet: pet,
-          species: species,
-          stage: periods.stage,
-          points: periods.points,
-          periodIndex: periods.period.index,
-          season: periods.season,
-        ),
-        const SizedBox(height: 12),
-        // Статусы.
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              PetStatusBar(
-                label: 'Сытость',
-                emoji: '🍎',
-                value: pet.hunger,
-                color: AppColors.leaf,
-                barHeight: 8,
-              ),
-              const SizedBox(height: 10),
-              PetStatusBar(
-                label: 'Веселье',
-                emoji: '🎾',
-                value: pet.fun,
-                color: AppColors.secondary,
-                barHeight: 8,
-              ),
-              const SizedBox(height: 10),
-              PetStatusBar(
-                label: 'Чистота',
-                emoji: '🫧',
-                value: pet.cleanliness,
-                color: AppColors.sky,
-                barHeight: 8,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Кнопки заботы: цена на кнопке, а что изменилось — на карточке.
-        Row(
-          children: [
-            Expanded(
-              child: CareActionButton(
-                emoji: '🍎',
-                label: 'Кормить',
-                cost: CareCosts.feed,
-                color: AppColors.leaf,
-                enabled:
-                    pet.canFeed && wallet.canAfford(CareCosts.feed),
-                onTap: () => _care(
-                  context,
-                  emoji: '🍎',
-                  title: 'Покормил(а) питомца',
-                  message:
-                      '${pet.name} больше не голоден — сытость растёт.',
-                  needLabel: 'корм',
-                  cost: CareCosts.feed,
-                  statusLabel: 'Сытость',
-                  statusBefore: pet.hunger,
-                  statusAfter: () => pet.hunger,
-                  perform: () => petService.feed(),
-                ),
+            ),
+            const SizedBox(height: 12),
+            // Кнопки заботы: цена на кнопке, а что изменилось — на карточке.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CareActionButton(
+                      emoji: '🍎',
+                      label: 'Кормить',
+                      cost: CareCosts.feed,
+                      color: AppColors.leaf,
+                      enabled: pet.canFeed && wallet.canAfford(CareCosts.feed),
+                      onTap: () => _care(
+                        context,
+                        emoji: '🍎',
+                        title: 'Покормил(а) питомца',
+                        message:
+                            '${pet.name} больше не голоден — сытость растёт.',
+                        needLabel: 'корм',
+                        cost: CareCosts.feed,
+                        statusLabel: 'Сытость',
+                        statusBefore: pet.hunger,
+                        statusAfter: () => pet.hunger,
+                        perform: () => petService.feed(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: CareActionButton(
+                      emoji: '🎾',
+                      label: 'Играть',
+                      cost: CareCosts.play,
+                      color: AppColors.secondary,
+                      enabled: pet.canPlay && wallet.canAfford(CareCosts.play),
+                      onTap: () => _care(
+                        context,
+                        emoji: '🎾',
+                        title: 'Поиграл(а) с питомцем',
+                        message:
+                            '${pet.name} отлично проводит время — веселье растёт.',
+                        needLabel: 'игру',
+                        cost: CareCosts.play,
+                        statusLabel: 'Веселье',
+                        statusBefore: pet.fun,
+                        statusAfter: () => pet.fun,
+                        perform: () => petService.play(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: CareActionButton(
+                      emoji: '🫧',
+                      label: 'Мыть',
+                      cost: CareCosts.wash,
+                      color: AppColors.sky,
+                      enabled: pet.canWash && wallet.canAfford(CareCosts.wash),
+                      onTap: () => _care(
+                        context,
+                        emoji: '🫧',
+                        title: 'Помыл(а) питомца',
+                        message: '${pet.name} чистый — чистота на максимуме.',
+                        needLabel: 'купание',
+                        cost: CareCosts.wash,
+                        statusLabel: 'Чистота',
+                        statusBefore: pet.cleanliness,
+                        statusAfter: () => pet.cleanliness,
+                        perform: () => petService.wash(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: CareActionButton(
-                emoji: '🎾',
-                label: 'Играть',
-                cost: CareCosts.play,
-                color: AppColors.secondary,
-                enabled:
-                    pet.canPlay && wallet.canAfford(CareCosts.play),
-                onTap: () => _care(
-                  context,
-                  emoji: '🎾',
-                  title: 'Поиграл(а) с питомцем',
-                  message:
-                      '${pet.name} отлично проводит время — веселье растёт.',
-                  needLabel: 'игру',
-                  cost: CareCosts.play,
-                  statusLabel: 'Веселье',
-                  statusBefore: pet.fun,
-                  statusAfter: () => pet.fun,
-                  perform: () => petService.play(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: CareActionButton(
-                emoji: '🫧',
-                label: 'Мыть',
-                cost: CareCosts.wash,
-                color: AppColors.sky,
-                enabled: pet.canWash && wallet.canAfford(CareCosts.wash),
-                onTap: () => _care(
-                  context,
-                  emoji: '🫧',
-                  title: 'Помыл(а) питомца',
-                  message:
-                      '${pet.name} чистый — чистота на максимуме.',
-                  needLabel: 'купание',
-                  cost: CareCosts.wash,
-                  statusLabel: 'Чистота',
-                  statusBefore: pet.cleanliness,
-                  statusAfter: () => pet.cleanliness,
-                  perform: () => petService.wash(),
-                ),
-              ),
-            ),
+            const SizedBox(height: 16),
           ],
-        ),
-      ],
+        );
+      },
     );
+  }
+
+  /// Карточка метрики в выбранном варианте HUD.
+  Widget _metricCard({
+    required String emoji,
+    required String label,
+    required double value,
+    required Color color,
+  }) {
+    return switch (_metricVariant) {
+      HudMetricVariant.bar => HudBarCard(
+        emoji: emoji,
+        label: label,
+        value: value,
+        color: color,
+      ),
+      HudMetricVariant.ring => HudRingCard(
+        emoji: emoji,
+        label: label,
+        value: value,
+        color: color,
+      ),
+      HudMetricVariant.segments => HudSegmentCard(
+        emoji: emoji,
+        label: label,
+        value: value,
+        color: color,
+      ),
+    };
+  }
+
+  /// Приблизительная высота фиксированных блоков HUD (полоса, имя,
+  /// переключатель, метрики, кнопки, отступы) — чтобы блок питомца
+  /// не вылезал за пределы вкладки.
+  double _fixedHeight() {
+    final metrics = switch (_metricVariant) {
+      HudMetricVariant.bar => 62.0,
+      HudMetricVariant.ring => 104.0,
+      HudMetricVariant.segments => 86.0,
+    };
+    return 8 + 40 + 8 + 52 + 8 + 30 + 8 + metrics + 12 + 110 + 16;
   }
 
   /// Забота (кормление / игра / мытьё): списывает монетки, обновляет статусы
@@ -604,41 +670,187 @@ class _PetTab extends StatelessWidget {
 
     final ok = perform();
     if (!ok) {
-      feedback.post(FeedbackEvent.careInsufficient(
-        petName: pet.name,
-        needLabel: needLabel,
-        needed: (cost - wallet.balance).clamp(0, 999999),
-        petMood: pet.mood,
-      ));
+      feedback.post(
+        FeedbackEvent.careInsufficient(
+          petName: pet.name,
+          needLabel: needLabel,
+          needed: (cost - wallet.balance).clamp(0, 999999),
+          petMood: pet.mood,
+        ),
+      );
       return;
     }
     if (svc.justLeveledUp) {
       svc.consumeLevelUp();
-      feedback.post(
-          FeedbackEvent.levelUp(level: pet.level, petName: pet.name));
+      feedback.post(FeedbackEvent.levelUp(level: pet.level, petName: pet.name));
     } else {
-      feedback.post(FeedbackEvent.care(
-        actionEmoji: emoji,
-        title: title,
-        message: message,
-        statusChange:
-            '$statusLabel: ${statusBefore.round()} → ${statusAfter().round()}',
-        cost: cost,
-        nextStep: 'Дальше: сделай задание или добавь в копилку.',
-        petMood: pet.mood,
-        petName: pet.name,
-      ));
+      feedback.post(
+        FeedbackEvent.care(
+          actionEmoji: emoji,
+          title: title,
+          message: message,
+          statusChange:
+              '$statusLabel: ${statusBefore.round()} → ${statusAfter().round()}',
+          cost: cost,
+          nextStep: 'Дальше: сделай задание или добавь в копилку.',
+          petMood: pet.mood,
+          petName: pet.name,
+        ),
+      );
     }
+  }
+}
+
+/// Верхняя приборная полоса HUD: уровень, прогресс XP, стадия
+/// финансовой ответственности (ТЗ §8.10: обе оси видны на главном экране).
+class _HudTopStrip extends StatelessWidget {
+  const _HudTopStrip({
+    required this.pet,
+    required this.species,
+    required this.stage,
+  });
+
+  final Pet pet;
+  final PetSpecies species;
+  final FinancialStage stage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.rust.withValues(alpha: 0.5),
+          width: 2,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Уровень — рыжий чип, цифры табличные.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.rust,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'Ур. ${pet.level}',
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Прогресс до следующего уровня.
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                height: 10,
+                child: ColoredBox(
+                  color: species.color.withValues(alpha: 0.18),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: pet.progressToNext.clamp(0, 1).toDouble(),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: species.color),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Стадия финансовой ответственности — отдельная ось (не XP).
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.bgDeep,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.leaf.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${stage.emoji} ${stage.label}',
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Переключатель вида метрик (превью дизайна): шкала / кольцо / ячейки.
+class _MetricVariantSwitcher extends StatelessWidget {
+  const _MetricVariantSwitcher({
+    required this.variant,
+    required this.onChanged,
+  });
+
+  final HudMetricVariant variant;
+  final ValueChanged<HudMetricVariant> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (final v in HudMetricVariant.values) ...[
+          if (v != HudMetricVariant.values.first) const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => onChanged(v),
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: v == variant ? AppColors.rust : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.rust.withValues(
+                    alpha: v == variant ? 1 : 0.4,
+                  ),
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                v.label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: v == variant ? Colors.white : AppColors.rust,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 
 /// Плавающий сниackbar с текстом.
 SnackBar _snack(String message) => SnackBar(
-      content: Text(message),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.ink,
-      duration: const Duration(seconds: 2),
-    );
+  content: Text(message),
+  behavior: SnackBarBehavior.floating,
+  backgroundColor: AppColors.ink,
+  duration: const Duration(seconds: 2),
+);
 
 /// Время операции в истории кошелька: «09.18 14:05».
 String _fmtOperationAt(DateTime d) =>
@@ -651,22 +863,22 @@ class _NoPet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text('🐾', style: TextStyle(fontSize: 64)),
-            SizedBox(height: 16),
-            Text(
-              'Создай питомца, чтобы начать!',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.inkSoft,
-              ),
-            ),
-          ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        Text('🐾', style: TextStyle(fontSize: 64)),
+        SizedBox(height: 16),
+        Text(
+          'Создай питомца, чтобы начать!',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.inkSoft,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 /// Таб «Кошелёк»: баланс, график заработка и копилка с целями.
@@ -783,48 +995,49 @@ class _WalletTab extends StatelessWidget {
                   ),
                 )
               else
-                ...wallet.transactions.take(6).map(
-                  (t) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      children: [
-                        Text(t.emoji,
-                            style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            t.reason,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ink,
+                ...wallet.transactions
+                    .take(6)
+                    .map(
+                      (t) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Text(t.emoji, style: const TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                t.reason,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.ink,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                            Text(
+                              _fmtOperationAt(t.at),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.inkSoft,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${t.amount > 0 ? '+' : ''}${t.amount}',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: t.amount > 0
+                                    ? const Color(0xFF3E8E4E)
+                                    : AppColors.primaryDark,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          _fmtOperationAt(t.at),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.inkSoft,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${t.amount > 0 ? '+' : ''}${t.amount}',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
-                            color: t.amount > 0
-                                ? const Color(0xFF3E8E4E)
-                                : AppColors.primaryDark,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
             ],
           ),
         ),
@@ -843,8 +1056,11 @@ class _WalletTab extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: () => _openAddGoal(context, piggy),
-              icon: const Icon(Icons.add_circle_rounded,
-                  color: AppColors.primary, size: 20),
+              icon: const Icon(
+                Icons.add_circle_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
               label: const Text(
                 'Новая цель',
                 style: TextStyle(
@@ -895,20 +1111,20 @@ class _WalletTab extends StatelessWidget {
   }
 
   Widget _card({required Widget child}) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
         ),
-        child: child,
-      );
+      ],
+    ),
+    child: child,
+  );
 }
 
 /// Карточка цели копилки: прогресс и кнопка «Копить».
@@ -953,8 +1169,7 @@ class _GoalCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Text(goal.emoji,
-                      style: const TextStyle(fontSize: 26)),
+                  child: Text(goal.emoji, style: const TextStyle(fontSize: 26)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -993,8 +1208,7 @@ class _GoalCard extends StatelessWidget {
                         ? AppColors.primary
                         : Colors.black.withValues(alpha: 0.08),
                     foregroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     minimumSize: const Size(0, 44),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1003,8 +1217,10 @@ class _GoalCard extends StatelessWidget {
                   onPressed: canSave ? onTopUp : null,
                   child: const Text(
                     'Копить',
-                    style:
-                        TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
             ],
@@ -1022,9 +1238,7 @@ class _GoalCard extends StatelessWidget {
                   widthFactor: goal.progress,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: reached
-                          ? const Color(0xFF3E8E4E)
-                          : AppColors.leaf,
+                      color: reached ? const Color(0xFF3E8E4E) : AppColors.leaf,
                     ),
                   ),
                 ),
@@ -1059,7 +1273,8 @@ void _openSaveGoal(
     builder: (dialogContext) => AlertDialog(
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20))),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+      ),
       contentPadding: const EdgeInsets.all(20),
       title: Row(
         children: [
@@ -1101,8 +1316,7 @@ void _openSaveGoal(
                     enabled: wallet.canAfford(amount),
                     onTap: () {
                       Navigator.of(dialogContext).pop();
-                      _doSaveGoal(
-                          context, piggy, petService, goal, amount);
+                      _doSaveGoal(context, piggy, petService, goal, amount);
                     },
                   ),
                 ),
@@ -1132,30 +1346,29 @@ ElevatedButton _amountChip({
   required int amount,
   required bool enabled,
   required VoidCallback onTap,
-}) =>
-    ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: enabled
-            ? AppColors.primary
-            : Colors.black.withValues(alpha: 0.08),
-        foregroundColor:
-            enabled ? Colors.white : Colors.black.withValues(alpha: 0.3),
-        minimumSize: const Size(0, 52),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+}) => ElevatedButton(
+  style: ElevatedButton.styleFrom(
+    backgroundColor: enabled
+        ? AppColors.primary
+        : Colors.black.withValues(alpha: 0.08),
+    foregroundColor: enabled
+        ? Colors.white
+        : Colors.black.withValues(alpha: 0.3),
+    minimumSize: const Size(0, 52),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  ),
+  onPressed: enabled ? onTap : null,
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        '$amount',
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
       ),
-      onPressed: enabled ? onTap : null,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$amount',
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w900)),
-          const Text('🪙', style: TextStyle(fontSize: 12)),
-        ],
-      ),
-    );
+      const Text('🪙', style: TextStyle(fontSize: 12)),
+    ],
+  ),
+);
 
 void _doSaveGoal(
   BuildContext context,
@@ -1167,8 +1380,7 @@ void _doSaveGoal(
   final savedBefore = goal.saved;
   final ok = piggy.saveToGoal(goal.id, amount);
   if (!context.mounted) return;
-  final messenger = ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar();
+  final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
   if (!ok) {
     messenger.showSnackBar(_snack('Не хватает монеток 🪙'));
     return;
@@ -1181,18 +1393,24 @@ void _doSaveGoal(
     // Повышение уровня громче достижения цели.
     petService.consumeLevelUp();
     feedback.post(
-        FeedbackEvent.levelUp(level: pet?.level ?? 1, petName: pet?.name ?? 'Питомец'));
+      FeedbackEvent.levelUp(
+        level: pet?.level ?? 1,
+        petName: pet?.name ?? 'Питомец',
+      ),
+    );
     return;
   }
-  feedback.post(FeedbackEvent.savings(
-    amount: actual,
-    goalTitle: goal.title,
-    saved: goal.saved,
-    target: goal.target,
-    petMood: pet?.mood,
-    petName: pet?.name,
-    reached: goal.isReached,
-  ));
+  feedback.post(
+    FeedbackEvent.savings(
+      amount: actual,
+      goalTitle: goal.title,
+      saved: goal.saved,
+      target: goal.target,
+      petMood: pet?.mood,
+      petName: pet?.name,
+      reached: goal.isReached,
+    ),
+  );
 }
 
 /// Диалог создания новой цели копилки.
@@ -1248,7 +1466,8 @@ class _AddGoalDialogState extends State<_AddGoalDialog> {
     return AlertDialog(
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20))),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+      ),
       contentPadding: const EdgeInsets.all(20),
       title: const Text(
         'Новая цель копилки',
@@ -1335,16 +1554,14 @@ class _AddGoalDialogState extends State<_AddGoalDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
           onPressed: _controller.text.trim().isEmpty
               ? null
-              : () => widget.onCreate(
-                  _controller.text.trim(), _emoji, _target),
+              : () => widget.onCreate(_controller.text.trim(), _emoji, _target),
           child: const Text(
             'Создать',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),

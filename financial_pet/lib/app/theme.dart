@@ -15,6 +15,9 @@ class AppColors {
   static const Color inkSoft = Color(0xFF6E6A76);
   static const Color card = Colors.white;
   static const Color coin = Color(0xFFFFB300);
+
+  /// Тёплый «рыжий» — акцент приборной панели HUD (рамки, чипы).
+  static const Color rust = Color(0xFFC9722F);
 }
 
 /// Готовая тема Material 3.
@@ -54,19 +57,17 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          textStyle:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
       ),
       // Лейблы зафиксированы в 12px для обоих состояний: в M3 выбранная
@@ -79,13 +80,18 @@ class AppTheme {
         unselectedItemColor: AppColors.inkSoft,
         type: BottomNavigationBarType.fixed,
         elevation: 12,
-        selectedLabelStyle:
-            TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-        unselectedLabelStyle:
-            TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        selectedLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
-      progressIndicatorTheme:
-          ProgressIndicatorThemeData(color: AppColors.primary),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: AppColors.primary,
+      ),
       dividerTheme: DividerThemeData(color: Colors.black12),
     );
   }
