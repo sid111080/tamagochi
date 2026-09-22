@@ -25,9 +25,28 @@ class _QuizScreenState extends State<QuizScreen> {
   final Set<String> _triedWrong = {};
   QuizResult? _result;
 
+  // Для задания-последовательности.
+  List<int> _seqOrder = [];
+  final Set<int> _seqPlaced = {};
+  List<int> _seqShuffled = [];
+  bool _seqChecked = false;
+
   final _scrollController = ScrollController();
 
   bool get _answered => _result != null;
+
+  bool get _isSequence => widget.task.type == TaskType.sequence;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.task.type == TaskType.sequence) {
+      // Перемешиваем элементы для sequence-задания.
+      _seqShuffled = List.generate(
+          widget.task.sequenceItems.length, (i) => i)
+        ..shuffle();
+    }
+  }
 
   @override
   void dispose() {
@@ -120,24 +139,90 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Выбери вариант',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink,
+            if (!_isSequence) ...[
+              const Text(
+                'Выбери вариант',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            ...widget.task.options.map(
-              (option) => _OptionCard(
-                option: option,
-                revealed: _answered,
-                selected: selectedId == option.id,
-                disabled: _triedWrong.contains(option.id),
-                onTap: () => _select(option.id),
+              const SizedBox(height: 12),
+              ...widget.task.options.map(
+                (option) => _OptionCard(
+                  option: option,
+                  revealed: _answered,
+                  selected: selectedId == option.id,
+                  disabled: _triedWrong.contains(option.id),
+                  onTap: () => _select(option.id),
+                ),
               ),
-            ),
+            ] else ...[
+              const Text(
+                'Расставь по порядку (нажми на карточки)',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Расставленные элементы.
+              if (_seqOrder.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (int i = 0; i < _seqOrder.length; i++)
+                        _SeqChip(
+                          label: widget.task.sequenceItems[_seqOrder[i]],
+                          index: i + 1,
+                          revealed: _answered,
+                          onTap: () => _removeSeq(i),
+                        ),
+                    ],
+                  ),
+                ),
+              // Доступные для выбора.
+              ..._seqShuffled
+                  .where((idx) => !_seqPlaced.contains(idx))
+                  .map(
+                    (idx) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _SeqItemCard(
+                        label: widget.task.sequenceItems[idx],
+                        disabled: _answered || _seqChecked,
+                        onTap: () => _placeSeq(idx),
+                      ),
+                    ),
+                  ),
+              // Кнопка проверки (когда все расставлены).
+              if (_seqOrder.length == widget.task.sequenceItems.length &&
+                  !_answered &&
+                  !_seqChecked)
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: _checkSequence,
+                    child: const Text(
+                      'Проверить',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+            ],
             const SizedBox(height: 8),
             if (result != null) ...[
               const SizedBox(height: 8),
@@ -211,12 +296,54 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() {
       _selectedOptionId = null;
       _result = null;
+      if (_isSequence) {
+        _seqOrder = [];
+        _seqPlaced.clear();
+        _seqShuffled = List.generate(
+                widget.task.sequenceItems.length, (i) => i)
+          ..shuffle();
+        _seqChecked = false;
+      }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
         _scrollController.jumpTo(0);
       }
     });
+  }
+
+  // --- Sequence-логика ---
+
+  void _placeSeq(int idx) {
+    if (_answered || _seqChecked) return;
+    if (_seqPlaced.contains(idx)) return;
+    setState(() {
+      _seqPlaced.add(idx);
+      _seqOrder.add(idx);
+    });
+  }
+
+  void _removeSeq(int position) {
+    if (_answered || _seqChecked) return;
+    setState(() {
+      final idx = _seqOrder.removeAt(position);
+      _seqPlaced.remove(idx);
+    });
+  }
+
+  void _checkSequence() {
+    if (_seqOrder.length != widget.task.sequenceItems.length) return;
+    final service = context.read<TaskService>();
+    final result = service.answerSequence(widget.task.id, _seqOrder);
+    if (result == null) {
+      if (context.mounted) Navigator.of(context).pop();
+      return;
+    }
+    setState(() {
+      _result = result;
+      if (!result.isCorrect) _seqChecked = true;
+    });
+    _scrollToFeedback();
   }
 
   Widget _chip(String text, Color color) => Container(
@@ -401,7 +528,7 @@ class _FeedbackPanel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Награда: 🪙 +${result.reward} фиников',
+                'Награда: 🪙 +${result.reward} монеток',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -438,6 +565,134 @@ class _FeedbackPanel extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Чип уже расставленного элемента (с номером позиции).
+class _SeqChip extends StatelessWidget {
+  const _SeqChip({
+    required this.label,
+    required this.index,
+    required this.revealed,
+    required this.onTap,
+  });
+
+  final String label;
+  final int index;
+  final bool revealed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: revealed ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: revealed
+              ? AppColors.leaf.withValues(alpha: 0.12)
+              : AppColors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: revealed
+                ? AppColors.leaf
+                : AppColors.primary.withValues(alpha: 0.5),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$index.',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: revealed ? AppColors.leaf : AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+              ),
+            ),
+            if (!revealed) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.close, size: 14, color: AppColors.inkSoft),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Карточка доступного элемента для выбора (sequence-задание).
+class _SeqItemCard extends StatelessWidget {
+  const _SeqItemCard({
+    required this.label,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: disabled ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: disabled ? AppColors.bg : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: disabled
+                ? Colors.black.withValues(alpha: 0.06)
+                : AppColors.primary.withValues(alpha: 0.3),
+            width: 2,
+          ),
+          boxShadow: disabled
+              ? const []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.touch_app_rounded,
+              size: 20,
+              color: disabled ? AppColors.inkSoft : AppColors.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: disabled ? AppColors.inkSoft : AppColors.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

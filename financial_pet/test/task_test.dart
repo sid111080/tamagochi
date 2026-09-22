@@ -123,20 +123,27 @@ void main() {
   });
 
   group('Контент из assets (ТЗ §8.14)', () {
-    test('9 заданий, 3 темы, у каждого есть верный вариант', () async {
+    test('10 заданий, 3 темы, у каждого есть верный вариант', () async {
       final raw = await File('assets/content/tasks.json').readAsString();
       final tasks = (jsonDecode(raw) as List)
           .map((e) => Task.fromJson(e as Map<String, dynamic>))
           .toList();
-      expect(tasks, hasLength(9));
+      expect(tasks, hasLength(10));
       expect(tasks.map((t) => t.topic).toSet(), hasLength(3));
-      expect(tasks.every((t) => t.hasCorrectOption), isTrue);
-      // Каждый вариант имеет пояснение (после ответа — обязательно, ТЗ §8.8).
+      // Choice-задания: каждый вариант имеет пояснение (ТЗ §8.8).
       expect(
-        tasks.every((t) =>
-            t.options.every((o) => o.explanation.isNotEmpty)),
+        tasks
+            .where((t) => t.type == TaskType.choice)
+            .every((t) => t.options.every((o) => o.explanation.isNotEmpty)),
         isTrue,
       );
+      // Sequence-задания: есть элементы и правильный порядок.
+      final seqTasks = tasks.where((t) => t.type == TaskType.sequence).toList();
+      expect(seqTasks, isNotEmpty);
+      for (final t in seqTasks) {
+        expect(t.sequenceItems, isNotEmpty);
+        expect(t.correctOrder, hasLength(t.sequenceItems.length));
+      }
     });
 
     test('ContentRepository: подгружает через инъекцию loader', () async {
@@ -145,7 +152,7 @@ void main() {
         loader: (path) async => raw,
       );
       final tasks = await repo.loadTasks();
-      expect(tasks, hasLength(9));
+      expect(tasks, hasLength(10));
     });
   });
 }

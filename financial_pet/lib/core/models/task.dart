@@ -36,8 +36,8 @@ extension TaskTopicX on TaskTopic {
       TaskTopic.planningBudget;
 }
 
-/// Тип задания. По ТЗ — не только выбор ответа, но сейчас реализуем choice.
-enum TaskType { choice }
+/// Тип задания. ТЗ §8.8: «Не только выбор ответа из вариантов».
+enum TaskType { choice, sequence }
 
 extension TaskTypeX on TaskType {
   static TaskType parse(String? name) =>
@@ -167,6 +167,8 @@ class Task {
     required this.minAge,
     required this.maxAge,
     required this.difficulty,
+    this.sequenceItems = const [],
+    this.correctOrder = const [],
   });
 
   final String id;
@@ -187,6 +189,14 @@ class Task {
   final int minAge;
   final int maxAge;
   final TaskDifficulty difficulty;
+
+  /// Элементы для задания-последовательности (тип [TaskType.sequence]).
+  /// Ребёнок расставляет их в правильном порядке.
+  final List<String> sequenceItems;
+
+  /// Правильный порядок: индексы в [sequenceItems] по возрастанию
+  /// (0 = первый, 1 = второй и т.д.).
+  final List<int> correctOrder;
 
   /// Уникальный вариант ответа с данным id.
   TaskOption? optionById(String id) =>
@@ -209,6 +219,12 @@ class Task {
         minAge: (json['min_age'] as num? ?? 7).toInt(),
         maxAge: (json['max_age'] as num? ?? 11).toInt(),
         difficulty: TaskDifficultyX.parse(json['difficulty'] as String?),
+        sequenceItems: ((json['sequence_items'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+        correctOrder: ((json['correct_order'] as List?) ?? const [])
+            .map((e) => (e as num).toInt())
+            .toList(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -223,5 +239,7 @@ class Task {
         'min_age': minAge,
         'max_age': maxAge,
         'difficulty': difficulty.name,
+        if (sequenceItems.isNotEmpty) 'sequence_items': sequenceItems,
+        if (correctOrder.isNotEmpty) 'correct_order': correctOrder,
       };
 }

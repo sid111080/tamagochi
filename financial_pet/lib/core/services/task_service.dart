@@ -20,7 +20,7 @@ const int _historyDays = 30;
 /// Опыт питомца за выполненное задание (рост через обучение).
 const int quizXp = 20;
 
-/// Итог ответа на квиз: для UI-обратной связи.
+/// Итог ответа на задание (квиз или последовательность): для UI-обратной связи.
 class QuizResult {
   const QuizResult({
     required this.task,
@@ -49,6 +49,36 @@ class QuizResult {
 
   /// Имя питомца (для текста празднования).
   final String petName;
+
+  /// Синтетический результат для задания-последовательности.
+  factory QuizResult.sequence({
+    required Task task,
+    required bool isCorrect,
+    required String explanation,
+    required int reward,
+    PetConsequence consequence = PetConsequence.neutral,
+    bool leveledUp = false,
+    int level = 0,
+    String petName = '',
+  }) {
+    return QuizResult(
+      task: task,
+      option: TaskOption(
+        id: '_seq',
+        text: '',
+        isCorrect: isCorrect,
+        consequencePet: consequence,
+        consequenceBalance: 0,
+        explanationCorrect: explanation,
+        explanationWrong: explanation,
+      ),
+      isCorrect: isCorrect,
+      reward: reward,
+      leveledUp: leveledUp,
+      level: level,
+      petName: petName,
+    );
+  }
 }
 
 /// Управляет заданиями по финансовой грамотности в формате квиза.
@@ -286,6 +316,64 @@ class TaskService extends ChangeNotifier {
       level: _pet.pet?.level ?? 0,
       petName: _pet.pet?.name ?? '',
     );
+  }
+
+  /// Ответ на задание-последовательность: [order] — индексы элементов
+  /// в порядке, в котором ребёнок их расставил.
+  QuizResult? answerSequence(String taskId, List<int> order) {
+    final now = clock();
+    final task = taskById(taskId);
+    if (task == null || !_isAvailable(taskId, now)) return null;
+    if (task.type != TaskType.sequence) return null;
+    if (order.length != task.sequenceItems.length) return null;
+
+    final isCorrect = _ordersMatch(order, task.correctOrder);
+
+    // Эмоциональное последствие.
+    final consequence = isCorrect
+        ? PetConsequence.happy
+        : PetConsequence.neutral;
+    _pet.reactToQuiz(consequence.moodDelta);
+
+    if (!isCorrect) {
+      _save();
+      return QuizResult.sequence(
+        task: task,
+        isCorrect: false,
+        explanation:
+            'Почти! Попробуй расставить по-другому: сначала — самое важное.',
+        reward: 0,
+        consequence: consequence,
+      );
+    }
+
+    // Верный ответ: награда + опыт.
+    _wallet.earn(task.reward, task.title, task.topic.badge);
+    _pet.addXp(quizXp);
+    _completed[taskId] = now.toIso8601String();
+    _updateStreak(now);
+    _refreshSelection();
+    _save();
+    return QuizResult.sequence(
+      task: task,
+      isCorrect: true,
+      explanation:
+          'Отлично! Ты правильно расставил(а) по приоритету: сначала обязательное, потом по желанию.',
+      reward: task.reward,
+      consequence: consequence,
+      leveledUp: _pet.justLeveledUp,
+      level: _pet.pet?.level ?? 0,
+      petName: _pet.pet?.name ?? '',
+    );
+  }
+
+  /// Сравнение порядков: игнорируем перестановку одинаковых значений.
+  bool _ordersMatch(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Стрик: +1, если вчера тоже выполняли; сброс в 1, если был пропуск.

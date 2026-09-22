@@ -16,6 +16,7 @@ class CreatePetScreen extends StatefulWidget {
 
 class _CreatePetScreenState extends State<CreatePetScreen> {
   late PetSpecies _selected;
+  int _variant = 0;
   late final TextEditingController _nameController;
 
   @override
@@ -32,14 +33,20 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
     if (s.id == _selected.id) return;
     setState(() {
       _selected = s;
+      _variant = 0;
       // Предлагаем имя вида, если пользователь не менял его вручную.
       _nameController.text = s.defaultName;
     });
   }
 
+  void _pickVariant(int v) {
+    if (v == _variant) return;
+    setState(() => _variant = v);
+  }
+
   void _create() {
     final service = context.read<PetService>();
-    service.createPet(_nameController.text, _selected.id);
+    service.createPet(_nameController.text, _selected.id, _variant);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
@@ -166,6 +173,72 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
                         },
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    // Выбор варианта окраски (ТЗ §8.2: ≥9 комбинаций).
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Окраска: ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.inkSoft,
+                          ),
+                        ),
+                        for (int i = 0; i < _selected.variants.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () => _pickVariant(i),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 48,
+                              height: 48,
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: _selected.variants[i].color
+                                    .withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: _variant == i
+                                      ? _selected.variants[i].color
+                                      : Colors.transparent,
+                                  width: 3,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 18,
+                                    height: 18,
+                                    decoration: BoxDecoration(
+                                      color: _selected.variants[i].color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _selected.variants[i].name,
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w700,
+                                      color: _variant == i
+                                          ? _selected.variants[i].color
+                                          : AppColors.inkSoft,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Center(
                       child: Text(
@@ -213,14 +286,16 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    // Превью + создание.
+                    // Превью + создание (цвет зависит от выбранного варианта).
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _selected.color.withValues(alpha: 0.25),
-                            _selected.color.withValues(alpha: 0.08),
+                            _selected.colorFor(_variant)
+                                .withValues(alpha: 0.25),
+                            _selected.colorFor(_variant)
+                                .withValues(alpha: 0.08),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(24),
@@ -235,7 +310,7 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: _selected.color
+                                  color: _selected.colorFor(_variant)
                                       .withValues(alpha: 0.4),
                                   blurRadius: 24,
                                   offset: const Offset(0, 8),

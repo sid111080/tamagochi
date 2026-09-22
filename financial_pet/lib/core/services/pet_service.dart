@@ -59,13 +59,14 @@ class PetService extends ChangeNotifier {
     }
   }
 
-  /// Создать нового питомца.
-  void createPet(String name, String speciesId) {
+  /// Создать нового питомца. [variant] — вариант окраски (0, 1, …).
+  void createPet(String name, String speciesId, [int variant = 0]) {
     final trimmed = name.trim();
     _pet = Pet(
       id: 'pet_${DateTime.now().microsecondsSinceEpoch}',
       name: trimmed.isEmpty ? 'Питомец' : trimmed,
       speciesId: speciesId,
+      variant: variant,
       hunger: 80,
       fun: 80,
       cleanliness: 80,

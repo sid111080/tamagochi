@@ -15,6 +15,7 @@ import '../../core/services/period_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/task_service.dart';
 import '../../core/services/wallet_service.dart';
+import '../../data/content/preset_goals.dart';
 import '../../app/theme.dart';
 import '../../features/adult/adult_section.dart';
 import '../../features/budget/budget_tab.dart';
@@ -1074,36 +1075,20 @@ class _WalletTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (piggy.goals.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Column(
-              children: [
-                Text('🏦', style: TextStyle(fontSize: 36)),
-                SizedBox(height: 10),
-                Text(
-                  'Пока пусто. Создай цель —\nнапример, копим на велосипед!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    height: 1.4,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.inkSoft,
-                  ),
-                ),
-              ],
-            ),
+          _PresetGoalsSection(
+            onCreate: (title, emoji, target) =>
+                _openAddGoalPreFilled(context, piggy, title, emoji, target),
           )
         else
           ...piggy.goals.map(
             (g) => _GoalCard(
               goal: g,
               canSave: wallet.canAfford(5),
+              canWithdraw: g.saved > 0 && !g.isReached,
               onTopUp: () =>
                   _openSaveGoal(context, wallet, piggy, petService, g),
+              onWithdraw: () =>
+                  _openWithdrawGoal(context, wallet, piggy, g),
             ),
           ),
       ],
@@ -1133,11 +1118,15 @@ class _GoalCard extends StatelessWidget {
     required this.goal,
     required this.canSave,
     required this.onTopUp,
+    this.canWithdraw = false,
+    this.onWithdraw,
   });
 
   final PiggyBankGoal goal;
   final bool canSave;
   final VoidCallback onTopUp;
+  final bool canWithdraw;
+  final VoidCallback? onWithdraw;
 
   @override
   Widget build(BuildContext context) {
@@ -1254,6 +1243,28 @@ class _GoalCard extends StatelessWidget {
               color: AppColors.inkSoft.withValues(alpha: 0.8),
             ),
           ),
+          if (canWithdraw && onWithdraw != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onWithdraw,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.inkSoft,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  minimumSize: const Size(48, 48),
+                ),
+                child: const Text(
+                  'Снять с копилки',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1431,10 +1442,135 @@ void _openAddGoal(BuildContext context, PiggyBankService piggy) {
   );
 }
 
+/// Диалог создания цели с предзаполненными данными (из пресет-цели).
+void _openAddGoalPreFilled(
+  BuildContext context,
+  PiggyBankService piggy,
+  String title,
+  String emoji,
+  int target,
+) {
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      final dialog = _AddGoalDialog(
+        onCreate: (t, e, target) {
+          piggy.addGoal(t, e, target);
+          if (dialogContext.mounted) {
+            Navigator.of(dialogContext).pop();
+          }
+        },
+        prefilledTitle: title,
+        prefilledEmoji: emoji,
+        prefilledTarget: target,
+      );
+      return dialog;
+    },
+  );
+}
+
+/// Диалог подтверждения снятия с копилки (ТЗ §8.7).
+void _openWithdrawGoal(
+  BuildContext context,
+  WalletService wallet,
+  PiggyBankService piggy,
+  PiggyBankGoal goal,
+) {
+  final maxAmount = goal.saved;
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+      ),
+      contentPadding: const EdgeInsets.all(20),
+      title: Row(
+        children: [
+          Text(goal.emoji, style: const TextStyle(fontSize: 26)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Снять с копилки',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'В копилке «${goal.title}»: $maxAmount монеток.\n'
+            'После снятия цель не будет достигнута — '
+            'придётся копить заново.',
+            style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.4,
+              color: AppColors.inkSoft,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              for (final amount in [5, 10, maxAmount]) ...[
+                if (amount != 5) const SizedBox(width: 8),
+                Expanded(
+                  child: _amountChip(
+                    amount: amount,
+                    enabled: amount <= maxAmount,
+                    onTap: () {
+                      final actual = piggy.withdrawFromGoal(goal.id, amount);
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
+                      if (actual > 0) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(_snack(
+                                'Снято $actual монеток 🪙'));
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text(
+            'Отмена',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.inkSoft,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _AddGoalDialog extends StatefulWidget {
-  const _AddGoalDialog({required this.onCreate});
+  const _AddGoalDialog({
+    required this.onCreate,
+    this.prefilledTitle,
+    this.prefilledEmoji,
+    this.prefilledTarget,
+  });
 
   final void Function(String title, String emoji, int target) onCreate;
+  final String? prefilledTitle;
+  final String? prefilledEmoji;
+  final int? prefilledTarget;
 
   @override
   State<_AddGoalDialog> createState() => _AddGoalDialogState();
@@ -1444,9 +1580,10 @@ class _AddGoalDialogState extends State<_AddGoalDialog> {
   static const _emojis = ['🎯', '🚲', '🎮', '🧸', '🛴', '📚'];
   static const _targets = [50, 100, 200];
 
-  final _controller = TextEditingController();
-  String _emoji = _AddGoalDialogState._emojis.first;
-  int _target = 100;
+  late final _controller = TextEditingController(
+      text: widget.prefilledTitle ?? '');
+  late String _emoji = widget.prefilledEmoji ?? _emojis.first;
+  late int _target = widget.prefilledTarget ?? 100;
 
   @override
   void initState() {
@@ -1568,6 +1705,101 @@ class _AddGoalDialogState extends State<_AddGoalDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Секция с пресет-целями (ТЗ §8.7): показывается, когда у ребёнка
+/// ещё нет ни одной цели. Выбор пресета предзаполняет диалог создания.
+class _PresetGoalsSection extends StatelessWidget {
+  const _PresetGoalsSection({required this.onCreate});
+
+  final void Function(String title, String emoji, int target) onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Выбери цель 🎯',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Или создай свою — нажми «Новая цель»',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.inkSoft,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final g in presetGoals)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+                onTap: () => onCreate(g.title, g.emoji, g.target),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.leaf.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.leaf.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(g.emoji, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              g.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ink,
+                              ),
+                            ),
+                            Text(
+                              g.hint,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.inkSoft,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${g.target} 🪙',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF3E8E4E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

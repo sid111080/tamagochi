@@ -24,6 +24,7 @@ class Pet {
     required this.id,
     required this.name,
     required this.speciesId,
+    this.variant = 0,
     this.hunger = 80,
     this.fun = 80,
     this.cleanliness = 80,
@@ -38,6 +39,9 @@ class Pet {
   final String id;
   final String name;
   final String speciesId;
+
+  /// Вариант окраски (0, 1, …) — визуально различимая комбинация.
+  final int variant;
 
   /// Сытость, веселье, чистота: 0..100.
   double hunger;
@@ -155,6 +159,7 @@ class Pet {
         'id': id,
         'name': name,
         'speciesId': speciesId,
+        'variant': variant,
         'hunger': hunger,
         'fun': fun,
         'cleanliness': cleanliness,
@@ -168,6 +173,7 @@ class Pet {
         id: json['id'] as String,
         name: json['name'] as String,
         speciesId: json['speciesId'] as String,
+        variant: (json['variant'] as num?)?.toInt() ?? 0,
         hunger: (json['hunger'] as num).toDouble(),
         fun: (json['fun'] as num).toDouble(),
         cleanliness: (json['cleanliness'] as num).toDouble(),

@@ -74,6 +74,21 @@ class PiggyBankService extends ChangeNotifier {
     return true;
   }
 
+  /// Снять [amount] монеток с цели в кошелёк (ТЗ §8.7).
+  /// Только если цель ещё не достигнута и в ней есть что снимать.
+  /// Возвращает фактически снятую сумму (0, если не удалось).
+  int withdrawFromGoal(String goalId, int amount) {
+    final goal =
+        _goals.where((g) => g.id == goalId).firstOrNull;
+    if (goal == null || amount <= 0) return 0;
+    final toWithdraw = amount > goal.saved ? goal.saved : amount;
+    if (toWithdraw <= 0) return 0;
+    goal.saved -= toWithdraw;
+    _wallet.earn(toWithdraw, 'Снято с копилки: ${goal.title}', goal.emoji);
+    _save();
+    return toWithdraw;
+  }
+
   /// Достигнута ли цель последним пополнением (для празднования в UI).
   bool justReached(String goalId) =>
       _goals.where((g) => g.id == goalId).firstOrNull?.isReached ?? false;

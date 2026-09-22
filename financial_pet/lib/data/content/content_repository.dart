@@ -22,7 +22,8 @@ class ContentRepository {
   final Future<String> Function(String path)? loader;
 
   /// Загрузить и разобрать все задания.
-  /// Отображаются только валидные (есть id и хотя бы один вариант).
+  /// Отображаются только валидные: есть id и хотя бы один вариант
+  /// (для choice) или хотя бы один элемент последовательности (для sequence).
   Future<List<Task>> loadTasks() async {
     final load = loader ?? _defaultLoader;
     final raw = await load(assetPath);
@@ -31,7 +32,8 @@ class ContentRepository {
     return decoded
         .whereType<Map<String, dynamic>>()
         .map(Task.fromJson)
-        .where((t) => t.id.isNotEmpty && t.options.isNotEmpty)
+        .where((t) => t.id.isNotEmpty &&
+            (t.options.isNotEmpty || t.sequenceItems.isNotEmpty))
         .toList();
   }
 
