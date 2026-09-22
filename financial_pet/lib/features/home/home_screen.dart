@@ -106,11 +106,6 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, piggy, tasks, _) {
                 final goal = piggy.goals.firstOrNull;
                 final task = tasks.availableTasks.firstOrNull;
-                // Компактные чипы (иконка + суть), чтобы влезть по ширине.
-                final goalText = goal == null
-                    ? '🎯 —'
-                    : '${goal.emoji} ${goal.title}';
-                final taskText = task == null ? '📝 ✓' : '📝 ${task.title}';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: SizedBox(
@@ -119,16 +114,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       children: [
-                        // Копилка и цель живут во вкладке «Кошелёк» (индекс 4).
+                        // Копилка: накопленные монетки («Кошелёк», индекс 4).
                         _SummaryChip(
-                          text: '🏦 ${piggy.totalSaved}',
+                          icon: '🪙',
+                          color: AppColors.coin,
+                          label: '${piggy.totalSaved}',
                           onTap: () => _openTab(4),
                         ),
                         const SizedBox(width: 8),
-                        _SummaryChip(text: goalText, onTap: () => _openTab(4)),
+                        // Цель накоплений («Кошелёк», индекс 4).
+                        _SummaryChip(
+                          icon: '🎯',
+                          color: AppColors.primary,
+                          label: goal == null ? 'Цель' : goal.title,
+                          onTap: () => _openTab(4),
+                        ),
                         const SizedBox(width: 8),
-                        // Активное задание — во вкладку «Задания» (индекс 3).
-                        _SummaryChip(text: taskText, onTap: () => _openTab(3)),
+                        // Активное задание («Задания», индекс 3).
+                        _SummaryChip(
+                          icon: '📝',
+                          color: AppColors.sky,
+                          label: task == null ? 'Задание' : task.title,
+                          onTap: () => _openTab(3),
+                        ),
                       ],
                     ),
                   ),
@@ -335,11 +343,19 @@ class _DemoChip extends StatelessWidget {
   }
 }
 
-/// Кликабельный сегмент строки-сводки (ТЗ §8.3): ведёт в нужную вкладку.
+/// Кликабельный сегмент строки-сводки (ТЗ §8.3): иконка в цветном бейдже
+/// + подпись. Ведёт в нужную вкладку.
 class _SummaryChip extends StatelessWidget {
-  const _SummaryChip({required this.text, required this.onTap});
+  const _SummaryChip({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+  });
 
-  final String text;
+  final String icon;
+  final Color color;
+  final String label;
   final VoidCallback onTap;
 
   @override
@@ -353,15 +369,33 @@ class _SummaryChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         onTap: onTap,
         child: Padding(
-          // Высота ~48 dp — доступная зона тапа (ТЗ §10).
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink,
-            ),
+          // Высота ~44 dp, по центру 48 — доступная зона тапа (ТЗ §10).
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Иконка в цветном круглом бейдже — сразу считывается категория.
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(icon, style: const TextStyle(fontSize: 15)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+              ),
+            ],
           ),
         ),
       ),

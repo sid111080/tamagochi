@@ -196,8 +196,9 @@ void main() {
     expect(find.text('Мои умения'), findsOneWidget);
     expect(find.text('Сбережения'), findsOneWidget);
 
-    // Цель копилки.
-    expect(find.text('Велосипед'), findsOneWidget);
+    // Цель копилки. «Велосипед» — 2 раза: в чипе-сводке (шапка) и в
+    // карточке цели на вкладке «История».
+    expect(find.text('Велосипед'), findsNWidgets(2));
     expect(find.text('Всего в копилке: 10 монеток'), findsOneWidget);
 
     // Пройденное задание: 2 вхождения — в списке заданий и в операциях
