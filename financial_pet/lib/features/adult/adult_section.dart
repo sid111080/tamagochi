@@ -234,6 +234,7 @@ class _AdultContent extends StatelessWidget {
     final tasks = context.watch<TaskService>();
     final piggy = context.watch<PiggyBankService>();
     final period = context.watch<PeriodService>();
+    final demo = context.watch<DemoService>();
     final pet = petService.pet;
 
     return ListView(
@@ -387,6 +388,28 @@ class _AdultContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
+              // Демо-режим (ТЗ §8.13): надёжная точка входа — раздел доступен
+              // с главного экрана. Вход сбрасывает профиль к тестовому, поэтому
+              // с подтверждением. Уже в демо — вход скрываем (есть сброс/выход).
+              if (!demo.isDemo)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.grape,
+                        side: const BorderSide(color: AppColors.grape),
+                        minimumSize: const Size(48, 52),
+                      ),
+                      onPressed: () => _enterDemo(context),
+                      icon: const Icon(Icons.science_rounded),
+                      label: const Text('Войти в демо-режим',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -476,6 +499,25 @@ class _AdultContent extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Войти в демо-режим (ТЗ §8.13): тестовый профиль, сценарий подряд,
+  /// без ожидания сроков. Профиль будет сброшен — с подтверждением.
+  Future<void> _enterDemo(BuildContext context) async {
+    final ok = await _confirm(
+      context,
+      title: 'Войти в демо-режим?',
+      message:
+          'Текущий профиль будет сброшен к тестовому: питомец «Муся», стартовый '
+          'баланс, все задания сразу. Обязательный сценарий проходится подряд, '
+          'без ожидания календарных сроков. Действие необратимо.',
+      confirmLabel: 'В демо',
+    );
+    if (!ok || !context.mounted) return;
+    context.read<DemoService>().enterDemo();
+    context.read<FeedbackService>().clear();
+    // Раздел открыт поверх Home → возвращаемся на главный (уже демо-профиль).
+    if (context.mounted) Navigator.of(context).pop();
   }
 
   /// Доп. баллы от родителя (ТЗ §8.12: «на усмотрение команды»).

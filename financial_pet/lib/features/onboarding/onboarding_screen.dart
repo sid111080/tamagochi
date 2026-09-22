@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
+import '../../core/services/demo_service.dart';
+import '../../core/services/feedback_service.dart';
+import '../../core/services/pet_service.dart';
+import '../home/home_screen.dart';
 import '../pet_creation/create_pet_screen.dart';
 
 /// Вводный онбординг (ТЗ §8.1): короткое знакомство с целью игры,
@@ -54,6 +59,70 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  /// Есть ли провайдер DemoService: в реальном приложении — да, в unit-тесте
+  /// (экран рендерится без дерева провайдеров) — нет. Кнопку демо показываем
+  /// только когда провайдер доступен.
+  bool _demoAvailable() {
+    try {
+      context.read<DemoService>();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Войти в демо-режим (ТЗ §8.13): тестовый профиль → сразу в Home.
+  /// Если есть реальный питомец — сначала подтверждаем (профиль будет сброшен).
+  Future<void> _enterDemo() async {
+    final pet = context.read<PetService>().pet;
+    if (pet != null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
+          title: const Text(
+            'Войти в демо-режим?',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink),
+          ),
+          content: const Text(
+            'Текущий профиль будет сброшен к тестовому. Действие необратимо.',
+            style: TextStyle(
+                fontSize: 14, height: 1.4, color: AppColors.inkSoft),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(c).pop(false),
+              child: const Text(
+                  'Отмена', style: TextStyle(color: AppColors.inkSoft)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.grape,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(c).pop(true),
+              child: const Text(
+                  'В демо', style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    context.read<DemoService>().enterDemo();
+    context.read<FeedbackService>().clear();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,25 +130,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // «Пропустить» — сверху, всегда доступно.
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                child: TextButton(
-                  onPressed: _finish,
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(96, 48),
-                  ),
-                  child: const Text(
-                    'Пропустить',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.inkSoft,
+            // Верх: «Демо-режим» (слева, если доступен) и «Пропустить» (справа).
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  if (_demoAvailable())
+                    TextButton(
+                      onPressed: _enterDemo,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(96, 48),
+                      ),
+                      child: const Text(
+                        '🎬 Демо',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.inkSoft,
+                        ),
+                      ),
+                    ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _finish,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(96, 48),
+                    ),
+                    child: const Text(
+                      'Пропустить',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.inkSoft,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
             Expanded(
