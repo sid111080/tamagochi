@@ -53,12 +53,17 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Row(
                 children: [
-                  const Text(
-                    'ФинПитомец',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.ink,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: const Text(
+                        'ФинПитомец',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.ink,
+                        ),
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -66,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _DemoChip(onTap: () => _openDemoDialog(context)),
                     const SizedBox(width: 8),
                   ],
-                  CoinBadge(balance: wallet.balance),
+                  Flexible(child: CoinBadge(balance: wallet.balance)),
                   const SizedBox(width: 8),
                   // Подсказка (ТЗ §8.1): вернуться к знакомству с игрой
                   // в любой момент. Открывается поверх Home → по завершении
