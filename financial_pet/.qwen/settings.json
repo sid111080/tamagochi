@@ -82,7 +82,17 @@
       "Bash(360 *)",
       "Bash(.)",
       "Bash(95/95 *)",
-      "Bash(msg)"
+      "Bash(msg)",
+      "Bash(diff *)",
+      "Bash(unzip *)",
+      "Bash(./gradlew *)",
+      "Bash($adb *)",
+      "Bash(локальные *)",
+      "Bash(и *)",
+      "Bash(смена *)",
+      "Bash(проверено *)",
+      "Bash(оба *)",
+      "Bash(/users/alexander/library/android/sdk/platform-tools/adb *)"
     ]
   },
   "$version": 4
