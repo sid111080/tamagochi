@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <boolean name="flutter.notifications_v1">true</boolean>
+    <string name="flutter.last_open_v1">2026-09-24T11:22:20.000000</string>
+    <string name="flutter.pet_v1">{&quot;id&quot;:&quot;pet_1790239048376468&quot;,&quot;name&quot;:&quot;Муся&quot;,&quot;speciesId&quot;:&quot;kitten&quot;,&quot;variant&quot;:0,&quot;hunger&quot;:20.0,&quot;fun&quot;:10.0,&quot;cleanliness&quot;:80.0,&quot;totalXp&quot;:0,&quot;createdAt&quot;:&quot;2026-09-24T11:37:28.376610&quot;,&quot;lastDecayAt&quot;:&quot;2026-09-24T13:22:20.000000&quot;,&quot;xpHistory&quot;:[0]}</string>
+</map>

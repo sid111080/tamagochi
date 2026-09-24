@@ -92,7 +92,12 @@
       "Bash(смена *)",
       "Bash(проверено *)",
       "Bash(оба *)",
-      "Bash(/users/alexander/library/android/sdk/platform-tools/adb *)"
+      "Bash(/users/alexander/library/android/sdk/platform-tools/adb *)",
+      "Bash(keytool *)",
+      "Bash(/usr/bin/java *)",
+      "Bash(\"/applications/android studio.app/contents/jbr/contents/home/bin/keytool\" *)",
+      "Bash(sips *)",
+      "Bash(md5 *)"
     ]
   },
   "$version": 4
