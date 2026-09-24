@@ -46,6 +46,7 @@ dependencies:
 
   # Charts for the progress screen
   fl_chart: ^0.70.2
+  flutter_local_notifications: ^22.3.1
 
 dev_dependencies:
   flutter_test:

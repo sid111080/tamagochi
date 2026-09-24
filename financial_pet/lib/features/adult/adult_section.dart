@@ -8,6 +8,7 @@ import '../../core/models/pet_species.dart';
 import '../../core/models/task.dart';
 import '../../core/services/demo_service.dart';
 import '../../core/services/feedback_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/pet_service.dart';
 import '../../core/services/piggy_bank_service.dart';
 import '../../core/services/period_service.dart';
@@ -235,6 +236,7 @@ class _AdultContent extends StatelessWidget {
     final piggy = context.watch<PiggyBankService>();
     final period = context.watch<PeriodService>();
     final demo = context.watch<DemoService>();
+    final notifications = context.watch<NotificationService>();
     final pet = petService.pet;
 
     return ListView(
@@ -368,6 +370,30 @@ class _AdultContent extends StatelessWidget {
                   ),
                 ),
               ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Локальные уведомления (ТЗ §10: «звуки и анимации можно отключить»).
+        _SectionCard(
+          title: '🔔 Уведомления',
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Локальные, без интернета: питомцу нужна забота, '
+                  'новые задания.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.35,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ),
+              Switch(
+                value: notifications.enabled,
+                onChanged: (_) => notifications.toggle(),
+              ),
             ],
           ),
         ),

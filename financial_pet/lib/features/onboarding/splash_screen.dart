@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../core/services/demo_service.dart';
+import '../../core/services/notification_service.dart';
 import '../home/home_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 
@@ -37,6 +40,9 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller.forward();
     _navigate();
+    // Локальные уведомления при запуске (ТЗ §3): питомцу нужна забота,
+    // новые задания. Без блокировки навигации — офлайн, быстро.
+    unawaited(context.read<NotificationService>().checkLaunchEvents());
   }
 
   Future<void> _navigate() async {

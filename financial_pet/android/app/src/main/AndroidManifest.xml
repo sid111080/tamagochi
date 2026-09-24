@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+ (API 33): runtime-право на локальные уведомления.
+         На Android 8–12 плагин не запрашивает — право granted по умолчанию. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="financial_pet"
         android:name="${applicationName}"

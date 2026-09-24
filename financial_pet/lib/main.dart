@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,6 +7,7 @@ import 'app/theme.dart';
 import 'core/models/task.dart';
 import 'core/services/demo_service.dart';
 import 'core/services/feedback_service.dart';
+import 'core/services/notification_service.dart';
 import 'core/services/pet_service.dart';
 import 'core/services/period_service.dart';
 import 'core/services/piggy_bank_service.dart';
@@ -21,15 +23,27 @@ Future<void> main() async {
   // Учебный контент (задания) грузим один раз при старте:
   // это слой данных, отделённый от игровой логики (ТЗ §4, §8.14).
   final tasks = await const ContentRepository().loadTasks();
-  runApp(App(prefs: prefs, tasks: tasks));
+  // Локальные уведомления (ТЗ §3, §4): канал + право (Android 13+).
+  // Полностью офлайн: уведомления создаёт система устройства.
+  final notificationBackend =
+      LocalNotificationBackend(FlutterLocalNotificationsPlugin());
+  await notificationBackend.init();
+  runApp(
+      App(prefs: prefs, tasks: tasks, notificationBackend: notificationBackend));
 }
 
 /// Корень приложения: предоставляет сервисы, контент и тему.
 class App extends StatelessWidget {
-  const App({super.key, required this.prefs, required this.tasks});
+  const App({
+    super.key,
+    required this.prefs,
+    required this.tasks,
+    required this.notificationBackend,
+  });
 
   final SharedPreferences prefs;
   final List<Task> tasks;
+  final NotificationBackend notificationBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +97,6 @@ class App extends StatelessWidget {
           },
         ),
         // Демо-режим (ТЗ §8.13): оркестратор тестового профиля.
-        // Последний в дереве — имеет доступ ко всем сервисам выше.
         ChangeNotifierProvider(
           create: (ctx) => DemoService(
             prefs,
@@ -92,6 +105,17 @@ class App extends StatelessWidget {
             ctx.read<TaskService>(),
             ctx.read<PiggyBankService>(),
             ctx.read<PeriodService>(),
+          ),
+        ),
+        // Локальные уведомления (ТЗ §3, §4): офлайн, без интернета.
+        // Последний в дереве — читает демо-флаг, чтобы в демо-профиле
+        // пуши не мешали сценарию.
+        ChangeNotifierProvider(
+          create: (ctx) => NotificationService(
+            prefs,
+            ctx.read<PetService>(),
+            ctx.read<DemoService>(),
+            backend: notificationBackend,
           ),
         ),
       ],
