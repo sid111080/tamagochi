@@ -97,7 +97,19 @@
       "Bash(/usr/bin/java *)",
       "Bash(\"/applications/android studio.app/contents/jbr/contents/home/bin/keytool\" *)",
       "Bash(sips *)",
-      "Bash(md5 *)"
+      "Bash(md5 *)",
+      "Bash(pod *)",
+      "Bash(xcodebuild *)",
+      "Bash(/applications/xcode.app/contents/developer/usr/bin/xcodebuild *)",
+      "Bash(zip *)",
+      "Bash(xcrun *)",
+      "Bash(xcode-select *)",
+      "Bash(open *)",
+      "Bash(mdfind *)",
+      "Bash(kill *)",
+      "Bash(true)",
+      "Bash(osascript *)",
+      "Bash(log *)"
     ]
   },
   "$version": 4

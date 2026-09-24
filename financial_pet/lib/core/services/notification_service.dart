@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -24,7 +25,7 @@ abstract interface class NotificationBackend {
   });
 }
 
-/// Android-реализация [NotificationBackend]. Полностью локальная:
+/// Реализация [NotificationBackend] для Android и iOS. Полностью локальная:
 /// уведомления создаёт система устройства, интернет не нужен (ТЗ §3, §4).
 class LocalNotificationBackend implements NotificationBackend {
   LocalNotificationBackend(this._plugin);
@@ -36,7 +37,7 @@ class LocalNotificationBackend implements NotificationBackend {
   static const String channelDescription =
       'Питомцу нужна забота, новые задания';
 
-  /// Белая иконка-силуэт в res/drawable (плагин ищет иконки в drawable).
+  /// Белая иконка-силуэт в res/drawable (Android; на iOS иконка не нужна).
   static const String _icon = 'ic_notify_pet';
 
   @override
@@ -44,22 +45,34 @@ class LocalNotificationBackend implements NotificationBackend {
     await _plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings(_icon),
+        iOS: IOSInitializationSettings(),
+        macOS: DarwinInitializationSettings(),
       ),
     );
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    await android?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        channelId,
-        channelName,
-        description: channelDescription,
-        importance: Importance.defaultImportance,
-      ),
-    );
-    // Android 13+ (API 33): runtime-право на уведомления.
-    // На Android 8–12 плагин возвращает результат без запроса.
-    await android?.requestNotificationsPermission();
+    if (Platform.isAndroid) {
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await android?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          channelId,
+          channelName,
+          description: channelDescription,
+          importance: Importance.defaultImportance,
+        ),
+      );
+      await android?.requestNotificationsPermission();
+    } else if (Platform.isIOS) {
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      await ios?.requestPermissions(alert: true, badge: true, sound: true);
+    } else if (Platform.isMacOS) {
+      final mac = _plugin
+          .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin>();
+      await mac?.requestPermissions(alert: true, badge: true, sound: true);
+    }
   }
 
   @override
@@ -68,18 +81,19 @@ class LocalNotificationBackend implements NotificationBackend {
     required String title,
     required String body,
   }) async {
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    await android?.show(
+    await _plugin.show(
       id: id,
       title: title,
       body: body,
-      notificationDetails: const AndroidNotificationDetails(
-        channelId,
-        channelName,
-        channelDescription: channelDescription,
-        icon: _icon,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: channelDescription,
+          icon: _icon,
+        ),
+        iOS: DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
       ),
     );
   }

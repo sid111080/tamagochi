@@ -2,7 +2,7 @@
 
 Мобильное приложение по финансовой грамотности для детей 7–11 лет. Ребёнок создаёт виртуального питомца, планирует бюджет, выполняет задания и копит на цель — состояние питомца зависит от финансовых решений.
 
-- **Платформа:** Android 8.0+ (API 21+), портретная ориентация
+- **Платформы:** Android 8.0+ (API 21+), iOS 14+, macOS 14+ (Apple Silicon)
 - **Язык интерфейса:** русский
 - **Работает офлайн:** нет зависимостей от сети, сервера, аккаунтов
 
@@ -80,6 +80,164 @@ flutter build appbundle --release
 ```
 
 > ⚠️ Релизная сборка сейчас подписана debug-ключом (см. `android/app/build.gradle.kts`). Перед публикацией в RuStore нужно настроить собственный signing config.
+
+---
+
+## Сборка под iOS
+
+### Требования (macOS)
+
+| Компонент | Минимальная версия | Где взять |
+|---|---|---|
+| macOS | 14+ (Sonoma) | — |
+| Xcode | 15+ | Mac App Store |
+| Flutter SDK | 3.22+ | Как для Android |
+| Apple ID | — | https://developer.apple.com (для release) |
+
+Проверка:
+
+```bash
+flutter doctor
+```
+
+Пункт `[✓] Xcode - DEVELOPER_DIR = ...` должен быть зелёным. Если `xcode-select` указывает на CommandLineTools:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
+
+### Запуск на iOS-симуляторе
+
+```bash
+# Убедиться, что iOS-платформа включена
+flutter config --enable-ios
+
+# Увидеть доступные симуляторы
+flutter devices
+# (в списке появятся iPhone 17, iPhone 18 Pro и т.д.)
+
+# Запустить
+flutter run -d "iPhone 18 Pro"
+```
+
+Или без `flutter run` (вручную):
+
+```bash
+# 1. Запустить симулятор
+xcrun simctl boot "iPhone 18 Pro"
+open -a Simulator
+
+# 2. Собрать и установить
+flutter build ios --debug --simulator
+xcrun simctl install "iPhone 18 Pro" build/ios/iphonesimulator/Runner.app
+
+# 3. Запустить
+xcrun simctl launch "iPhone 18 Pro" ru.rustore.financialPet
+```
+
+### Сборка для устройства (release)
+
+Для установки на физический iPhone нужен **Apple Developer аккаунт** (бесплатного достаточно для разработки):
+
+1. Открой проект: `open ios/Runner.xcworkspace`
+2. Target **Runner** → **Signing & Capabilities** → выбери **Team**
+3. Xcode автоматически создаст Development Certificate + Provisioning Profile
+4. Собрать:
+
+```bash
+flutter build ios --release
+# → build/ios/iphoneos/Runner.app
+```
+
+### Экспорт .ipa
+
+```bash
+# Через Xcode: Product → Archive → Distribute App → Custom → Development
+# Или вручную:
+cd build/ios/iphoneos
+mkdir -p Payload && cp -R Runner.app Payload/
+zip -r -X FinancialPet.ipa Payload
+rm -rf Payload
+# → FinancialPet.ipa
+```
+
+> ⚠️ IPA без подписи (`--no-codesign`) можно собрать командой `flutter build ios --release --no-codesign`, но установить на устройство её нельзя — только для артефакта.
+
+### Полезные команды (iOS)
+
+| Команда | Что делает |
+|---|---|
+| `flutter run -d <simulator>` | Запуск на симуляторе с hot-reload |
+| `flutter build ios --debug --simulator` | Debug-сборка для симулятора |
+| `flutter build ios --release` | Release-сборка для устройства (нужна подпись) |
+| `flutter build ios --release --no-codesign` | Release без подписи (только артефакт) |
+| `xcrun simctl list devices available` | Список симуляторов |
+| `xcrun simctl shutdown all` | Остановить все симуляторы |
+
+---
+
+## Сборка под macOS (Apple Silicon)
+
+Приложение собирается как **нативное macOS-приложение** — работает без эмулятора. Окно имитирует смартфон (393×852 pt).
+
+### Требования
+
+| Компонент | Минимальная версия | Где взять |
+|---|---|---|
+| macOS | 14+ (Apple Silicon) | — |
+| Xcode | 15+ | Mac App Store |
+| Flutter SDK | 3.22+ | Как для Android |
+
+### Включить macOS-платформу (один раз)
+
+```bash
+cd financial_pet
+flutter create --platforms=macos .
+```
+
+Команда создаст папку `macos/` с Xcode-проектом.
+
+### ARM-only сборка (рекомендуется)
+
+```bash
+flutter config --enable-macos-arm64-only
+```
+
+Уменьшает размер вдвое (~22 МБ вместо ~45 МБ), т.к. исключает x86_64.
+
+### Сборка
+
+```bash
+# Release (для распространения)
+flutter build macos --release
+# → build/macos/Build/Products/Release/financial_pet.app
+
+# Debug (для разработки)
+flutter build macos --debug
+# → build/macos/Build/Products/Debug/financial_pet.app
+```
+
+### Запуск
+
+```bash
+open build/macos/Build/Products/Release/financial_pet.app
+```
+
+Или в режиме разработки с hot-reload:
+
+```bash
+flutter run -d macos
+```
+
+### Распаковка в .dmg (для распространения)
+
+```bash
+# Создаём DMG с приложением
+hdiutil create -volname "ФинПитомец" -srcfolder build/macos/Build/Products/Release/financial_pet.app -ov -format UDZO FinancialPet.dmg
+# → FinancialPet.dmg
+```
+
+> ⚠️ Для установки на чужой Mac приложение нужно будет подписать (Apple Developer) или пользователь отключит Gatekeeper: `xattr -d com.apple.quarantine /path/to/financial_pet.app`.
 
 ### Тесты
 
